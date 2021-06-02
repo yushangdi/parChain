@@ -42,4 +42,5 @@ TEST DATA
 
 
 ## Running Tests
-For the memory tests, `valgrind &gt;= 3.17.0` is required.
+For running time tests, we use `numactl`. It can be installed using `apt install numactl`. 
+For the memory tests, `valgrind &gt;= 3.17.0` is required. You can download [here](https://www.valgrind.org/docs/download_docs.html). 
