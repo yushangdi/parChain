@@ -1,3 +1,9 @@
 [submodule "multi-threaded-NN-chain"]
 	path = multi-threaded-NN-chain
 	url = https://github.com/yushangdi/multi-threaded-NN-chain
+[submodule "fast_protein_cluster"]
+	path = fast_protein_cluster
+	url = https://github.com/yushangdi/fast_protein_cluster
+[submodule "fastcluster"]
+	path = fastcluster
+	url = https://github.com/yushangdi/fastcluster
