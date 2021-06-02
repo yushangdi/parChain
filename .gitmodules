@@ -1,0 +1,3 @@
+[submodule "multi-threaded-NN-chain"]
+	path = multi-threaded-NN-chain
+	url = https://github.com/yushangdi/multi-threaded-NN-chain
