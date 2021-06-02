@@ -2,6 +2,11 @@
 
 This program is adapted from [the problem based benchmark suite (PBBS)](https://github.mit.edu/jshun/pbbs).
 
+To get the submodules:
+```
+git pull
+git submodule update --init
+```
 
 Implementations
 --------
@@ -26,7 +31,7 @@ The [original code](https://github.com/lhhunghimself/fast_protein_cluster) works
 
 Compiler:
 * g++ = 7.5.0 with support for Cilk Plus
-* python3
+* python3 &gt;= 3.6.9
 
 Python libraries:
 * scipy
@@ -34,11 +39,9 @@ Python libraries:
 * pandas
 * numpy
 
-***********************************
-TEST DATA
-***********************************
+## Data
 
-/data
+You can download our datasets [here](https://console.cloud.google.com/storage/browser/...)
 
 
 ## Running Tests
