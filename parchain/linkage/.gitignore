@@ -1,0 +1,10 @@
+*.pdf
+*.pem
+*.o
+common/linkageCheck
+common/linkageCheck.o
+.ipynb_checkpoints/
+outputs/
+*.txt
+*.json
+outputs_*
