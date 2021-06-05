@@ -3,7 +3,7 @@
 This program is adapted from [the problem based benchmark suite (PBBS)](https://github.mit.edu/jshun/pbbs).
 
 To get the submodules:
-```
+```bash
 git pull
 git submodule update --init
 ```
@@ -47,3 +47,12 @@ You can download our datasets [here](https://console.cloud.google.com/storage/br
 ## Running Tests
 For running time tests, we use `numactl`. It can be installed using `apt install numactl`. 
 For the memory tests, `valgrind &gt;= 3.17.0` is required. You can download [here](https://www.valgrind.org/docs/download_docs.html). 
+
+To run our scripts, the datasets need to be in the "datasets" folder under this folder. 
+
+### Jeon
+The runtime/memory experiment result of ParChain paper runs the following. The result files will be in `outputs/outputs_jeon` and `outputs/memo_outputs`.
+```bash
+./jeon_exp.sh
+./jeon_exp_memo.sh
+```
