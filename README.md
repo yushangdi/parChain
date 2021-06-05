@@ -51,8 +51,16 @@ For the memory tests, `valgrind &gt;= 3.17.0` is required. You can download [her
 To run our scripts, the datasets need to be in the "datasets" folder under this folder. 
 
 ### Jeon
-The runtime/memory experiment result of ParChain paper runs the following. The result files will be in `outputs/outputs_jeon` and `outputs/memo_outputs`.
+The runtime/memory experiment result of Jeon runs the following. The result files will be in `outputs/outputs_jeon` and `outputs/memo_outputs`.
 ```bash
 ./jeon_exp.sh
 ./jeon_exp_memo.sh
+```
+
+### Scipy and Sklearn
+The runtime/memory experiment result of scipy and sklearn runs the following. The result files will be in `outputs/outputs_scipy`, `outputs/outputs_sklearn` and `outputs/memo_outputs`.
+```bash
+./scipy_exp.sh
+./python_libs_exp.sh
+./python_libs_exp_memo.sh
 ```
