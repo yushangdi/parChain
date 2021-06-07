@@ -1090,59 +1090,59 @@ namespace FINDNN {
     };
 
     // mark cluster id and others on the tree of Centers
-    template<int dim, class pointT, class nodeInfo>
-    struct MarkKdTreeDynamCenters{
-        typedef typename nodeInfo::infoT infoT;
-        typedef dynamicKdNode<dim, pointT, nodeInfo> kdnodeT;
+    // template<int dim, class pointT, class nodeInfo>
+    // struct MarkKdTreeDynamCenters{
+    //     typedef typename nodeInfo::infoT infoT;
+    //     typedef dynamicKdNode<dim, pointT, nodeInfo> kdnodeT;
 
-        // pointT *centers;
-        intT *sizes;
-        infoT initVal = nodeInfo().initInfoVal();
+    //     // pointT *centers;
+    //     intT *sizes;
+    //     infoT initVal = nodeInfo().initInfoVal();
 
-        MarkKdTreeDynamCenters(intT *t_sizes):sizes(t_sizes){
-        }
-        MarkKdTreeDynamCenters(){
-        }
+    //     MarkKdTreeDynamCenters(intT *t_sizes):sizes(t_sizes){
+    //     }
+    //     MarkKdTreeDynamCenters(){
+    //     }
 
-        inline bool doMark(intT C, intT round){ return true;}
+    //     inline bool doMark(intT C, intT round){ return true;}
 
-        inline bool isTopDown(infoT info){return false;}//{ return get<0>(info) != -1;}
+    //     inline bool isTopDown(infoT info){return false;}//{ return get<0>(info) != -1;}
 
-        inline void TopDownNode(kdnodeT *Q, infoT info){
-            if(!isTopDown(info)) return;
-            Q->nInfo.setInfo(info);
-        }
+    //     inline void TopDownNode(kdnodeT *Q, infoT info){
+    //         if(!isTopDown(info)) return;
+    //         Q->nInfo.setInfo(info);
+    //     }
 
-        inline void BottomUpNode(kdnodeT *Q, infoT info){
-            if(isTopDown(info)) return;
-            Q->nInfo.setMinN(min(Q->left->nInfo.getMinN(), Q->right->nInfo.getMinN()));
-        }
+    //     inline void BottomUpNode(kdnodeT *Q, infoT info){
+    //         if(isTopDown(info)) return;
+    //         Q->nInfo.setMinN(min(Q->left->nInfo.getMinN(), Q->right->nInfo.getMinN()));
+    //     }
 
-        inline void BaseCase(kdnodeT *Q, infoT info){
-            if(isTopDown(info)){
-                Q->nInfo.setInfo(info);
-            }else{
-                intT min_n = numeric_limits<intT>::max(); 
-                for(intT i=1; i<Q->size(); ++i){
-                    if(Q->items[i]){
-                    intT id_temp = Q->items[i]->idx();
-                    min_n = min(min_n, sizes[id_temp]);  }
-                }
-                Q->nInfo.setInfo(infoT(min_n));
-            }
-        }
+    //     inline void BaseCase(kdnodeT *Q, infoT info){
+    //         if(isTopDown(info)){
+    //             Q->nInfo.setInfo(info);
+    //         }else{
+    //             intT min_n = numeric_limits<intT>::max(); 
+    //             for(intT i=1; i<Q->size(); ++i){
+    //                 if(Q->items[i]){
+    //                 intT id_temp = Q->items[i]->idx();
+    //                 min_n = min(min_n, sizes[id_temp]);  }
+    //             }
+    //             Q->nInfo.setInfo(infoT(min_n));
+    //         }
+    //     }
 
-        inline infoT SwitchMode(kdnodeT *Q, infoT info){ //must be -1
-            return info;
-        }
+    //     inline infoT SwitchMode(kdnodeT *Q, infoT info){ //must be -1
+    //         return info;
+    //     }
 
-        inline bool Par(kdnodeT *Q){return Q->size() > 1000;}
+    //     inline bool Par(kdnodeT *Q){return Q->size() > 1000;}
 
-        inline bool Stop(kdnodeT *Q, infoT info){
-            return false;
-        }
+    //     inline bool Stop(kdnodeT *Q, infoT info){
+    //         return false;
+    //     }
 
-    };
+    // };
     // template<class nodeT>
     // struct ShiftPoints{
     //     intT delta;

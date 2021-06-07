@@ -20,11 +20,9 @@ TIME = $(BNCHMRK)Time
 TEST_FILES = testInputs
 
 # Make the benchmark, and make the output check code in the common directory
-all : $(BNCHMRK) testInputs
+all : $(BNCHMRK)
 	cd ../common; make -s $(CHECK)
 
-$(TEST_FILES) :
-	cp ../common/$@ .
 
 # Files copied (linked) from toplevel common directory
 # The sort used to remove duplicates
@@ -43,14 +41,6 @@ BENCH = $(TIME).C $(sort $(TIME_REQUIRE) $(BENCH_REQUIRE))
 $(BENCH) :
 	ln -s ../common/$@ .
 
-ifndef USEJEMALLOC
-JEMALLOC =
-else
-JEMALLOCLD = $(shell jemalloc-config --libdir)
-JEMALLOC = -DUSEJEMALLOC -L `jemalloc-config --libdir` -Wl,-rpath,`jemalloc-config --libdir` -ljemalloc `jemalloc-config --libs`
-# -L $(JEMALLOCLD) -ljemalloc
-endif
-
 # Make all implementation objects
 %.o : %.C $(GLOBAL_REQUIRE) $(GLOBAL_LIB_REQUIRE) $(BENCH_REQUIRE) $(LOCAL_REQUIRE)
 	$(PCC) $(PCFLAGS) $(JEMALLOC) -c $< -o $@
@@ -62,7 +52,6 @@ $(TIME).o : $(TIME).C $(TIME_GLOBAL_REQUIRE) $(TIME_REQUIRE)
 # Make benchmark
 $(BNCHMRK) : $(TIME).o $(OBJS)
 	$(PCC) $(PLFLAGS) -o $@ $(TIME).o $(OBJS) $(LIBS) $(JEMALLOC)
-
 
 clean :
 	rm -f $(BNCHMRK) *.o *.pyc; cd ../common;make clean

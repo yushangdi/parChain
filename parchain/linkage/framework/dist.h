@@ -964,157 +964,157 @@ struct distWard1: public distAbstract {
 };
 
 
-// pointer array, dynamic kdtree of centers
-template<int dim, class pointTT, class nodeTT, class nodeInfo, class M>
-struct distWard2: public distAbstract {
-  typedef pointTT pointT;
-  typedef nodeTT nodeT;
-  typedef dynamicKdNode<dim, pointT, nodeInfo> kdnodeT;
-  typedef dynamicKdTree<dim, pointT, nodeInfo> kdtreeT;
+// // pointer array, dynamic kdtree of centers
+// template<int dim, class pointTT, class nodeTT, class nodeInfo, class M>
+// struct distWard2: public distAbstract {
+//   typedef pointTT pointT;
+//   typedef nodeTT nodeT;
+//   typedef dynamicKdNode<dim, pointT, nodeInfo> kdnodeT;
+//   typedef dynamicKdTree<dim, pointT, nodeInfo> kdtreeT;
 
-  bool no_cache = true;
-  bool id_only = true;
-  pointT *PP;
-  M marker;
+//   bool no_cache = true;
+//   bool id_only = true;
+//   pointT *PP;
+//   M marker;
 
-  pointT *centers; //ith location is the center of cluster activeCluster[i]
-  pointT *centersDepr; //(2i,2i+1)th location is the center of cluster activeCluster[i]
-  bool *flag;
-  intT *centerMap; // ith location is the idx of cluster i in centers
-  intT *sizes; //ith location is the size of cluster i
-  pointT *treePts;
-  intT counter = 0;
+//   pointT *centers; //ith location is the center of cluster activeCluster[i]
+//   pointT *centersDepr; //(2i,2i+1)th location is the center of cluster activeCluster[i]
+//   bool *flag;
+//   intT *centerMap; // ith location is the idx of cluster i in centers
+//   intT *sizes; //ith location is the size of cluster i
+//   pointT *treePts;
+//   intT counter = 0;
 
 
-  inline static void printName(){
-    cout << "dist Ward 2 dynamic kdtree" << endl;
-  }
+//   inline static void printName(){
+//     cout << "dist Ward 2 dynamic kdtree" << endl;
+//   }
     
-  distWard2(pointT *t_PP, intT t_n, bool t_no_cache): PP(t_PP){
-    // if(!no_cache){
-    //   cout << "no cache needs to be true" << endl;
-    //   exit(1);
-    // }
-    centers = newA(pointT, t_n);
-    centersDepr = newA(pointT, 2*t_n);
-    treePts = newA(pointT, 2*t_n);
-    flag = newA(bool, 3*t_n);
-    sizes = newA(intT, t_n);
-    centerMap = newA(intT, t_n);
+//   distWard2(pointT *t_PP, intT t_n, bool t_no_cache): PP(t_PP){
+//     // if(!no_cache){
+//     //   cout << "no cache needs to be true" << endl;
+//     //   exit(1);
+//     // }
+//     centers = newA(pointT, t_n);
+//     centersDepr = newA(pointT, 2*t_n);
+//     treePts = newA(pointT, 2*t_n);
+//     flag = newA(bool, 3*t_n);
+//     sizes = newA(intT, t_n);
+//     centerMap = newA(intT, t_n);
 
-    parallel_for(intT i=0; i<t_n; ++i) {centers[i] = PP[i];}
-    parallel_for(intT i=0; i<t_n; ++i) {sizes[i] = 1;}
-    parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
-
-
-    // kdtree = new kdtreeT(centers, t_n);
-    marker = M(sizes);
-
-  }
-
-  inline void initNodes(nodeT *nodes, intT n){
-    parallel_for(intT i=0; i<n; ++i) {nodes[i] = nodeT(i, PP[i]);}
-  }
-
-  inline double getDistNaive(intT cid1, intT cid2, 
-                          double lb = -1, double ub = numeric_limits<double>::max(), 
-                          bool par = true){ 
-    // return this->getDistNaive(cid1,cid2);
-    double ni = (double) sizes[cid1]; 
-    double nj = (double) sizes[cid2];
-    // if(ni + nj > 2) 
-    return sqrt(2*(ni*nj)*centers[centerMap[cid1]].pointDistSq(centers[centerMap[cid2]])/(ni + nj));
-    // return centers[centerMap[cid1]].pointDist(centers[centerMap[cid2]]);
-  }
-
-  inline double getDistNaive(nodeT *inode,  nodeT *jnode, 
-                          double lb = -1, double ub = numeric_limits<double>::max(), 
-                          bool par = true){ 
-    double ni = (double) inode->n; 
-    double nj = (double) jnode->n;
-    if(ni + nj > 2) return sqrt(2*(ni*nj)*inode->dist(jnode)/(ni + nj));
-    return sqrt(inode->dist(jnode));
-  }
-
-  template<class kdnodeT, class Fs>
-  void getRadius(intT cid, kdnodeT *root, Fs *fs){
-    this->getRadius(cid, root, fs);
-  }
-
-  template<class F>
-  inline void update(intT round, F *finder){
-    //make points array
-    intT  C = finder->C;
-
-    parallel_for(intT i = 0; i < C; ++i){
-      intT cid  = finder->activeClusters[i];
-      nodeT *clusterNode = finder->getNode(cid);
-      centerMap[cid] = i;
-      centers[i] = pointT(clusterNode->center, cid);
-      sizes[cid] = finder->getNode(cid)->n;
-      if(clusterNode->round == round){//merged this round, build new tree
-        centersDepr[2*i] = pointT(clusterNode->left->center, clusterNode->left->cId);
-        centersDepr[2*i+1] = pointT(clusterNode->right->center, clusterNode->right->cId);
-        flag[i] = true;
-        flag[C+2*i] = true;
-        flag[C+2*i+1] = true;
-      }else{
-        centersDepr[2*i] = pointT(clusterNode->center, -1);
-        centersDepr[2*i+1] = pointT(clusterNode->center, -1);
-        flag[i] = false;
-        flag[C+2*i] = false;
-        flag[C+2*i+1] = false;
-      }
-    }    
-    _seq<pointT> addPts = sequence::pack<pointT, intT, sequence::getA<pointT,intT> >(treePts+counter, flag, 0, C, sequence::getA<pointT,intT>(centers));
-    _seq<pointT> removePts = sequence::pack<pointT, intT, sequence::getA<pointT,intT> >(NULL, flag+C, 0, 2*C, sequence::getA<pointT,intT>(centersDepr));
-
-    counter += addPts.n;
-    if(addPts.n > C/2){
-      // build kdtree
-      delete finder->kdtree;
-      finder->kdtree = new kdtreeT(centers, C);//Don't pass in PP! we need centers, not points
-      counter = 0;
-    }else{
-      finder->kdtree->erase(removePts.A, removePts.n);
-      finder->kdtree->insert(addPts.A, addPts.n);
-    }
+//     parallel_for(intT i=0; i<t_n; ++i) {centers[i] = PP[i];}
+//     parallel_for(intT i=0; i<t_n; ++i) {sizes[i] = 1;}
+//     parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
 
 
-    // free(addPts.A);
-    free(removePts.A);
+//     // kdtree = new kdtreeT(centers, t_n);
+//     marker = M(sizes);
 
-    //mark min sizes
-    FINDNN::singletree<kdnodeT, M, typename M::infoT>(finder->kdtree->root, &marker, marker.initVal);
-  }
+//   }
 
-  inline double updateDistO(double dik, double djk, double ni, double nj, double nk, double dij){
-    double ntotal = ni + nj + nk;
-    double d = sqrt( ( ((ni + nk)  * dik * dik) + ((nj + nk) * djk * djk) - (nk * dij * dij) )/ ntotal );
-    return d;
-  }
+//   inline void initNodes(nodeT *nodes, intT n){
+//     parallel_for(intT i=0; i<n; ++i) {nodes[i] = nodeT(i, PP[i]);}
+//   }
 
-  inline double updateDistN(double dikl, double dikr, double djkl, double djkr, 
-                       double ni, double nj, double nkl, double nkr,
-                       double dij, double dklr ){
-    double dik = updateDistO(dikl, dikr, nkl, nkr, ni, dklr);
-    double djk = updateDistO(djkl, djkr, nkl, nkr, nj, dklr);
-    return updateDistO(dik, djk, ni, nj, (nkl + nkr), dij);
-  }
+//   inline double getDistNaive(intT cid1, intT cid2, 
+//                           double lb = -1, double ub = numeric_limits<double>::max(), 
+//                           bool par = true){ 
+//     // return this->getDistNaive(cid1,cid2);
+//     double ni = (double) sizes[cid1]; 
+//     double nj = (double) sizes[cid2];
+//     // if(ni + nj > 2) 
+//     return sqrt(2*(ni*nj)*centers[centerMap[cid1]].pointDistSq(centers[centerMap[cid2]])/(ni + nj));
+//     // return centers[centerMap[cid1]].pointDist(centers[centerMap[cid2]]);
+//   }
+
+//   inline double getDistNaive(nodeT *inode,  nodeT *jnode, 
+//                           double lb = -1, double ub = numeric_limits<double>::max(), 
+//                           bool par = true){ 
+//     double ni = (double) inode->n; 
+//     double nj = (double) jnode->n;
+//     if(ni + nj > 2) return sqrt(2*(ni*nj)*inode->dist(jnode)/(ni + nj));
+//     return sqrt(inode->dist(jnode));
+//   }
+
+//   template<class kdnodeT, class Fs>
+//   void getRadius(intT cid, kdnodeT *root, Fs *fs){
+//     this->getRadius(cid, root, fs);
+//   }
+
+//   template<class F>
+//   inline void update(intT round, F *finder){
+//     //make points array
+//     intT  C = finder->C;
+
+//     parallel_for(intT i = 0; i < C; ++i){
+//       intT cid  = finder->activeClusters[i];
+//       nodeT *clusterNode = finder->getNode(cid);
+//       centerMap[cid] = i;
+//       centers[i] = pointT(clusterNode->center, cid);
+//       sizes[cid] = finder->getNode(cid)->n;
+//       if(clusterNode->round == round){//merged this round, build new tree
+//         centersDepr[2*i] = pointT(clusterNode->left->center, clusterNode->left->cId);
+//         centersDepr[2*i+1] = pointT(clusterNode->right->center, clusterNode->right->cId);
+//         flag[i] = true;
+//         flag[C+2*i] = true;
+//         flag[C+2*i+1] = true;
+//       }else{
+//         centersDepr[2*i] = pointT(clusterNode->center, -1);
+//         centersDepr[2*i+1] = pointT(clusterNode->center, -1);
+//         flag[i] = false;
+//         flag[C+2*i] = false;
+//         flag[C+2*i+1] = false;
+//       }
+//     }    
+//     _seq<pointT> addPts = sequence::pack<pointT, intT, sequence::getA<pointT,intT> >(treePts+counter, flag, 0, C, sequence::getA<pointT,intT>(centers));
+//     _seq<pointT> removePts = sequence::pack<pointT, intT, sequence::getA<pointT,intT> >(NULL, flag+C, 0, 2*C, sequence::getA<pointT,intT>(centersDepr));
+
+//     counter += addPts.n;
+//     if(addPts.n > C/2){
+//       // build kdtree
+//       delete finder->kdtree;
+//       finder->kdtree = new kdtreeT(centers, C);//Don't pass in PP! we need centers, not points
+//       counter = 0;
+//     }else{
+//       finder->kdtree->erase(removePts.A, removePts.n);
+//       finder->kdtree->insert(addPts.A, addPts.n);
+//     }
+
+
+//     // free(addPts.A);
+//     free(removePts.A);
+
+//     //mark min sizes
+//     FINDNN::singletree<kdnodeT, M, typename M::infoT>(finder->kdtree->root, &marker, marker.initVal);
+//   }
+
+//   inline double updateDistO(double dik, double djk, double ni, double nj, double nk, double dij){
+//     double ntotal = ni + nj + nk;
+//     double d = sqrt( ( ((ni + nk)  * dik * dik) + ((nj + nk) * djk * djk) - (nk * dij * dij) )/ ntotal );
+//     return d;
+//   }
+
+//   inline double updateDistN(double dikl, double dikr, double djkl, double djkr, 
+//                        double ni, double nj, double nkl, double nkr,
+//                        double dij, double dklr ){
+//     double dik = updateDistO(dikl, dikr, nkl, nkr, ni, dklr);
+//     double djk = updateDistO(djkl, djkr, nkl, nkr, nj, dklr);
+//     return updateDistO(dik, djk, ni, nj, (nkl + nkr), dij);
+//   }
 
 
 
-  ~distWard2(){
-    // delete kdtree;
-    free(centers);
-    free(centersDepr);
-    free(sizes);
-    free(flag);
-    free(centerMap);
-    free(treePts);
-  }
+//   ~distWard2(){
+//     // delete kdtree;
+//     free(centers);
+//     free(centersDepr);
+//     free(sizes);
+//     free(flag);
+//     free(centerMap);
+//     free(treePts);
+//   }
 
-};
+// };
 
 //////////////////////// HDBSCAN - Boruvka //////////////////////////////////
 

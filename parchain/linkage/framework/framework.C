@@ -22,7 +22,7 @@
 #include "unionfind.h"
 #include "gettime.h"
 #include "kdTree2.h"
-#include "dynamicKdTree.h"
+// #include "dynamicKdTree.h"
 #include "neighbor.h"
 // #include "distanceMatrix.h"
 #include "method_chain_tree.h"
@@ -284,7 +284,7 @@ UnionFind::ParUF<intT> *linkage(point<dim>* P, intT n, commandLine params, Union
 
   intT cache_size = params.getOptionIntValue("-cachesize", 32);
   if(cache_size == 1) cache_size =0;
-  cout << "cache_size = " <<  cache_size << endl;
+  cout << "cache_size/2 = " <<  cache_size << endl;
 
   if(method ==  "complete"){
       completeLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
