@@ -3,13 +3,13 @@
 [ -d "outputs" ] || mkdir "outputs"
 [ -d "outputs/outputs_jeon" ] || mkdir "outputs/outputs_jeon"
 
-echo "entering ~/parChain/multi-threaded-NN-chain"
-cd ~/parChain/multi-threaded-NN-chain
+echo "entering parChain/multi-threaded-NN-chain"
+cd multi-threaded-NN-chain
 echo "compile Jeon..."
 make clean
 make -j
 
-echo "exiting ~/parChain/multi-threaded-NN-chain"
+echo "exiting parChain/multi-threaded-NN-chain"
 cd ../
 
 workers=(96 48 36 24 12 8 4 2 1) 

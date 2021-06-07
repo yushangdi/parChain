@@ -27,8 +27,8 @@ dims=(10 2 10)
 for wk in "${workers2[@]}"; do
   ind=0
   for dataset in "${datasets[@]}"; do
-    echo "fast_protein_cluster/fast_protein_cluster -i ./datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --haverage --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_${wk}th.txt"
-    fast_protein_cluster/fast_protein_cluster -i ~/datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --haverage --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_${wk}th.txt
+    echo "fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --haverage --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_${wk}th.txt"
+    fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --haverage --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_${wk}th.txt
     let ind++
   done
 done
@@ -36,8 +36,8 @@ done
 for wk in "${workers2[@]}"; do
   ind=0
   for dataset in "${datasets[@]}"; do
-    echo "fast_protein_cluster/fast_protein_cluster -i ~/datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --hcomplete --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_completememo_${dataset}_${wk}th.txt"
-    fast_protein_cluster/fast_protein_cluster -i ~/datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --hcomplete --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_completememo_${dataset}_${wk}th.txt
+    echo "fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --hcomplete --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_completememo_${dataset}_${wk}th.txt"
+    fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads ${wk} --hcomplete --ndim ${dims[$ind]} &> outputs/memo_outputs/fastprotein_completememo_${dataset}_${wk}th.txt
     let ind++
   done
 done 

@@ -32,6 +32,7 @@ The [original code](https://github.com/lhhunghimself/fast_protein_cluster) works
 Compiler:
 * g++ = 7.5.0 with support for Cilk Plus
 * python3 &gt;= 3.6.9
+* make
 
 Python libraries:
 * scipy
@@ -50,13 +51,52 @@ For the memory tests, `valgrind &gt;= 3.17.0` is required. You can download [her
 
 To run our scripts, the datasets need to be in the "datasets" folder under this folder. 
 
+### PC and PC-matrix
+
+The runtime/memory experiment result of our algorithm runs the following. The result files will be in `outputs/outputs_{method}` and `outputs/memo_outputs`.
+You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run. 
+```bash
+./pc_exp.sh complete
+./pc_exp.sh ward
+./pc_exp.sh avg 32
+./pc_exp.sh avgsq 
+
+./pc_exp_memo.sh complete
+./pc_exp_memo.sh ward
+./pc_exp_memo.sh avg
+./pc_exp_memo.sh avgsq 
+```
+
+The runtime/memory experiment result of our algorithm runs the following. The result files will be in `outputs/outputs_matrix` and `outputs/memo_outputs`.
+You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run. 
+```bash
+./pc_matrix_exp.sh complete
+./pc_matrix_exp.sh ward
+./pc_matrix_exp.sh avg 32
+./pc_matrix_exp.sh avgsq 
+
+./pc_matrix_exp_memo.sh complete
+./pc_matrix_exp_memo.sh ward
+./pc_matrix_exp_memo.sh avg
+./pc_matrix_exp_memo.sh avgsq 
+```
+
+
+### PC-matrix
+
+The runtime/memory experiment result of our algorithm using distance matrix runs the following. The result files will be in `outputs/outputs_matrix` and `outputs/memo_outputs`.
+```bash
+./jeon_exp.sh
+./jeon_exp_memo.sh
+```
+
+
 ### Jeon
 The runtime/memory experiment result of Jeon runs the following. The result files will be in `outputs/outputs_jeon` and `outputs/memo_outputs`.
 ```bash
 ./jeon_exp.sh
 ./jeon_exp_memo.sh
 ```
-
 
 ### fastprotein
 The runtime/memory experiment result of fastprotein runs the following. The result files will be in `outputs/outputs_fastprotein` and `outputs/memo_outputs`.

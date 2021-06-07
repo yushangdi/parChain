@@ -20,11 +20,11 @@ datasets=(
 )
 for dataset in "${datasets[@]}"; do
   echo "valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_avgmemo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ./datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --haverage --ndim 2 &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_36th.txt"
-  valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_avgmemo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ~/datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --haverage --ndim 2 &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_36th.txt
+  valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_avgmemo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --haverage --ndim 2 &> outputs/memo_outputs/fastprotein_avgmemo_${dataset}_36th.txt
 done
 
 for dataset in "${datasets[@]}"; do
-  echo "valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ~/datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --hcomplete --ndim 2 &> outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.txt"
-  valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ~/datasets/ ${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --hcomplete --ndim 2 &> outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.txt
+  echo "valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --hcomplete --ndim 2 &> outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.txt"
+  valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.out fast_protein_cluster/fast_protein_cluster -i ./datasets/${dataset}.pbbs -o output --euclidean --nclusters 1 --nthreads 32 --hcomplete --ndim 2 &> outputs/memo_outputs/fastprotein_completememo_${dataset}_36th.txt
 done
 echo "done"
