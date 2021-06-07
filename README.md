@@ -66,8 +66,10 @@ The runtime/memory experiment result of fastprotein runs the following. The resu
 ```
 
 
-### Scipy and Sklearn
-The runtime/memory experiment result of scipy and sklearn runs the following. The result files will be in `outputs/outputs_scipy`, `outputs/outputs_sklearn` and `outputs/memo_outputs`.
+### Scipy and Sklearn and fastcluster
+The runtime/memory experiment result of scipy and sklearn runs the following. The result files will be in `outputs/outputs_scipy`, `outputs/outputs_sklearn`, `outputs/outputs_fastcluster` and `outputs/memo_outputs`.
+You need to install Scipy, Sklearn, and fastcluster first. 
+Scipy and Sklearn and be installed using `pip`. The fastcluster submodule in this repo includes some additional methods (linear memory nearest neighbor chain for Ward's and average linkage with squared Euclidean distance metric). You can refer to `fastcluster/` for installation method. 
 ```bash
 ./scipy_exp.sh
 ./python_libs_exp.sh

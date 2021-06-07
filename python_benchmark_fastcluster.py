@@ -48,7 +48,7 @@ def main_vector_nnchain(dataset, method, metric, drop = False, save = True):
 if __name__ == "__main__":
 	dataset = sys.argv[1]
 	method = sys.argv[2]
-	drop = sys.argv[3] == "1"
+	drop = False
 	if method not in ["avg", "avgsq", 'complete', "average", "single", "ward", "all", "linear"]:
 		print("invalid method ", method)
 	else:
