@@ -8,7 +8,7 @@ methods=("ward" "avg" "complete" "avgsq")
 
 datasets=(
 			"2D_GaussianDisc_1K"
-      "2D_GaussianDisc_5K"
+      "2D_GaussianDisc_3K"
       "2D_GaussianDisc_10K"
 )
 for dataset in "${datasets[@]}"; do

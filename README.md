@@ -57,6 +57,15 @@ The runtime/memory experiment result of Jeon runs the following. The result file
 ./jeon_exp_memo.sh
 ```
 
+
+### fastprotein
+The runtime/memory experiment result of fastprotein runs the following. The result files will be in `outputs/outputs_fastprotein` and `outputs/memo_outputs`.
+```bash
+./fastprotein_exp.sh
+./fastprotein_exp_memo.sh
+```
+
+
 ### Scipy and Sklearn
 The runtime/memory experiment result of scipy and sklearn runs the following. The result files will be in `outputs/outputs_scipy`, `outputs/outputs_sklearn` and `outputs/memo_outputs`.
 ```bash
