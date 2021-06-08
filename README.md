@@ -35,8 +35,8 @@ Compiler:
 * make
 
 Python libraries:
-* scipy
-* sklearn
+* scipy &gt;= 1.5.4 
+* sklearn &gt;= 0.24.2
 * pandas
 * numpy
 
