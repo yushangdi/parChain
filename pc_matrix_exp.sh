@@ -8,11 +8,10 @@ if [[ -z "$METHOD" ]]; then
   echo "Method is empty"
   exit
 fi
-   
 
 
 [ -d "outputs" ] || mkdir "outputs"
-[ -d "outputs/outputs_${METHOD}${SUFFIX}" ] || mkdir "outputs/outputs_${METHOD}${SUFFIX}"
+[ -d "outputs/outputs_matrix" ] || mkdir "outputs/outputs_matrix"
 
 echo "entering parChain/parchain/linkage/framework"
 cd parchain/linkage/framework
@@ -29,10 +28,10 @@ workers=(96 48 36 24 12 1)
 datasets=(
     "10D_UCI1_19K" 
     "2D_GaussianDisc_10K"
-    "10D_UCI4_100K"
+    "10D_UCI4_100K" 
 )
 
-    # "2D_GaussianDisc_1M"
+    # "2D_GaussianDisc_1M"  
     # "2D_GaussianDisc_100K"
     # "5D_GaussianDisc_1M"
     # "2D_GaussianDisc_10M"
@@ -54,13 +53,13 @@ for wk in "${workers[@]}"; do
     for dataset in "${datasets[@]}"; do
     
 	if [[ "${wk}" -eq 1 ]];then
-            echo "CILK_NWORKERS=${wk} ./parchain/linkage/framework/linkage -matrix -method $METHOD -r 1 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs > outputs/outputs_${METHOD}/${METHOD}_matrix_${dataset}_${wk}th.txt"
+            echo "CILK_NWORKERS=${wk} ./parchain/linkage/framework/linkage -matrix -method $METHOD -r 1 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs > outputs/outputs_matrix/${METHOD}_matrix_${dataset}_${wk}th.txt"
             CILK_NWORKERS=${wk} ./parchain/linkage/framework/linkage -matrix -method $METHOD -r 1 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs \
-                > outputs/outputs_${METHOD}/${METHOD}_matrix_${dataset}_${wk}th.txt
+                > outputs/outputs_matrix/${METHOD}_matrix_${dataset}_${wk}th.txt
         else
-            echo "CILK_NWORKERS=${wk} numactl -i all ./parchain/linkage/framework/linkage -matrix -method $METHOD -r 3 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs > outputs/outputs_${METHOD}/${METHOD}_matrix_${dataset}_${wk}th.txt"
+            echo "CILK_NWORKERS=${wk} numactl -i all ./parchain/linkage/framework/linkage -matrix -method $METHOD -r 3 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs > outputs/outputs_matrix/${METHOD}_matrix_${dataset}_${wk}th.txt"
             CILK_NWORKERS=${wk} numactl -i all ./parchain/linkage/framework/linkage -matrix -method $METHOD -r 3 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs \
-                > outputs/outputs_${METHOD}/${METHOD}_matrix_${dataset}_${wk}th.txt
+                > outputs/outputs_matrix/${METHOD}_matrix_${dataset}_${wk}th.txt
         fi
         let ind++
     done
