@@ -6,9 +6,9 @@
 
 echo "entering /parChain/fast_protein_cluster"
 cd fast_protein_cluster
-echo "compile Jeon with debug flag..."
+echo "compile fastprotein with debug flag..."
 make clean
-make debug
+make debug -j
 
 echo "exiting /parChain/fast_protein_cluster"
 cd ../
