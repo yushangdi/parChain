@@ -69,21 +69,12 @@ You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run.
 ```bash
 ./pc_matrix_exp.sh complete
 ./pc_matrix_exp.sh ward
-./pc_matrix_exp.sh avg 32
+./pc_matrix_exp.sh avg
 ./pc_matrix_exp.sh avgsq 
 
 ./pc_matrix_exp_memo.sh
 ```
-
-
-### PC-matrix
-
-The runtime/memory experiment result of our algorithm using distance matrix runs the following. The result files will be in `outputs/outputs_matrix` and `outputs/memo_outputs`.
-```bash
-./jeon_exp.sh
-./jeon_exp_memo.sh
-```
-
+ 
 
 ### Jeon
 The runtime/memory experiment result of Jeon runs the following. The result files will be in `outputs/outputs_jeon` and `outputs/memo_outputs`.
