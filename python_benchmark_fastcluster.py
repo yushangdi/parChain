@@ -6,12 +6,12 @@ import pandas as pd
 import time
 
 
-ADDR = "~/datasets/"
+ADDR = "./datasets/"
 
 def main(dataset, method, metric='euclidean', save = True):
 	data_addr = ADDR + dataset + ".pbbs"
 	data = pd.read_csv(data_addr,  sep = " ", header=None)
-	print(data.head())
+	# print(data.head())
 	start_time = time.time()
 	Z = fastcluster.linkage(data, method=method, metric=metric, preserve_input=True)
 	end_time = time.time()
@@ -25,7 +25,7 @@ def main_vector(dataset, method, metric, drop = False, save = True):
 	data = pd.read_csv(data_addr,  sep = " ", header=None)
 	if drop:
 		data = data.drop(len(data.columns)-1, axis = 1)
-	print(data.head())
+	# print(data.head())
 	start_time = time.time()
 	Z = fastcluster.linkage_vector(data, method=method, metric=metric)
 	end_time = time.time()

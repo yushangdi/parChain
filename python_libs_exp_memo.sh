@@ -22,6 +22,7 @@ for dataset in "${datasets[@]}"; do
 				echo "valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastcluster_${METHOD}memo_${dataset}_1th.out python3 python_benchmark_fastcluster.py ${dataset} ${METHOD} > outputs/memo_outputs/fastcluster_${METHOD}memo_${dataset}_1th.txt"
 				valgrind --tool=massif --max-snapshots=10 --detailed-freq=5 --massif-out-file=outputs/memo_outputs/fastcluster_${METHOD}memo_${dataset}_1th.out python3 python_benchmark_fastcluster.py ${dataset} ${METHOD} > outputs/memo_outputs/fastcluster_${METHOD}memo_${dataset}_1th.txt 
 	done
+	echo "##############"
 done
 
 

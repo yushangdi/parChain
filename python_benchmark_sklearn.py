@@ -7,7 +7,7 @@ import pandas as pd
 import time
 
 
-ADDR = "~/datasets/"
+ADDR = "./datasets/"
 
 def main(dataset, method):
 	data_addr = ADDR + dataset + ".pbbs"
