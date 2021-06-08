@@ -96,7 +96,6 @@ The runtime/memory experiment result of scipy and sklearn runs the following. Th
 You need to install Scipy, Sklearn, and fastcluster first. 
 Scipy and Sklearn and be installed using `pip`. The fastcluster submodule in this repo includes some additional methods (linear memory nearest neighbor chain for Ward's and average linkage with squared Euclidean distance metric). You can refer to `fastcluster/` for installation method. 
 ```bash
-./scipy_exp.sh
 ./python_libs_exp.sh
 ./python_libs_exp_memo.sh
 ```
