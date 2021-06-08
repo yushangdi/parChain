@@ -61,10 +61,7 @@ You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run.
 ./pc_exp.sh avg 32
 ./pc_exp.sh avgsq 
 
-./pc_exp_memo.sh complete
-./pc_exp_memo.sh ward
-./pc_exp_memo.sh avg
-./pc_exp_memo.sh avgsq 
+./pc_exp_memo.sh
 ```
 
 The runtime/memory experiment result of our algorithm runs the following. The result files will be in `outputs/outputs_matrix` and `outputs/memo_outputs`.
