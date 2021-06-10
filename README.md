@@ -1,6 +1,6 @@
 # ParChain: A Framework for Parallel Hierarchical Agglomerative Clustering using Nearest-Neighbor Chain
 
-This program is adapted from [the problem based benchmark suite (PBBS)](https://github.mit.edu/jshun/pbbs).
+This repository contains code for [arChain: A Framework for Parallel Hierarchical Agglomerative Clustering using Nearest-Neighbor Chain](http://arxiv.org/abs/2106.04727).
 
 To get the submodules:
 ```bash
@@ -13,7 +13,7 @@ Implementations
 Each folder contains an implementation that we tested.
 
 `parchain`
-Our ParChain algorithms for complete linkage with Euclidean distance, Ward's linkage with Euclidean distance, average linkage with Euclidean distance and average linkage with squared Euclidean distance .
+Our ParChain algorithms for complete linkage with Euclidean distance, Ward's linkage with Euclidean distance, average linkage with Euclidean distance and average linkage with squared Euclidean distance. This program is adapted from [the problem based benchmark suite (PBBS)](https://github.mit.edu/jshun/pbbs).
 
 `multi-threaded-NN-chain`
 [Jeon et al's](https://ieeexplore.ieee.org/document/6893001) parallel nearest-neighbor chain implementation. It supports average linkage with Euclidean distance. 
