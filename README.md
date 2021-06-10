@@ -1,6 +1,6 @@
 # ParChain: A Framework for Parallel Hierarchical Agglomerative Clustering using Nearest-Neighbor Chain
 
-This repository contains code for [arChain: A Framework for Parallel Hierarchical Agglomerative Clustering using Nearest-Neighbor Chain](http://arxiv.org/abs/2106.04727).
+This repository contains code for [ParChain: A Framework for Parallel Hierarchical Agglomerative Clustering using Nearest-Neighbor Chain](http://arxiv.org/abs/2106.04727).
 
 To get the submodules:
 ```bash
