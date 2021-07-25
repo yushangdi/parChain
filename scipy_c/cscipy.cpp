@@ -12,10 +12,10 @@
 #include "gettime.h"
 using namespace std;
 
-#define COMP 1
-#define WARD 2
-#define AVG 3
-#define AVGSQ 4
+// #define COMP 1
+// #define WARD 2
+// #define AVG 3
+// #define AVGSQ 4
 
 
 
@@ -191,6 +191,9 @@ struct Average{
 
 // to build a complete tree, sklearn call scipy for ward's linkage
 
+// this is the same as the sklearn implementation
+// for full matrix input, can be optimized to remove invalid elements from a
+// and use insert_or_assign to update
 template<class F>
 map<int, double> *merge(map<int, double> *a, map<int, double> *b, int* mask, int n_a, int n_b, F& new_dist ){
   map<int, double> *out_obj = new map<int, double>();
@@ -239,7 +242,7 @@ void sklearn(double * D, int n, F new_dist){
   int* parent = newA(int, n_nodes);
   int* used_node = newA(int, n_nodes);
   parallel_for(int i=0; i<n_nodes; ++i){
-    used_node[i] = 1;
+    used_node[i] = 1; // change to zero when it is merged
     parent[i] = i;
   }
 
@@ -271,6 +274,8 @@ void sklearn(double * D, int n, F new_dist){
 
     // update the structure matrix A and the inertia matrix
     // a clever 'min', or 'max' operation between A[i] and A[j]
+    // merge the valid elements in A[i], A[j] to A[k]
+    // for active elements, assign distance to k to their columns
     map<int, double> *coord_col = merge(A[i], A[j], used_node, n_i, n_j, new_dist);
     for(auto iter = coord_col->begin(); iter != coord_col->end(); ++iter){
       int col = iter->first;
@@ -281,12 +286,16 @@ void sklearn(double * D, int n, F new_dist){
     A[k] = coord_col;
     delete A[i];
     delete A[j];
+    A[i] = A[j] = 0;
   }
   // int n_leaves = n_samples;
   free(parent);
   free(used_node);
+  for (intT i=0; i<n; i++) {
+    if(A[i]!=0) delete A[i];
+  }
   free(A);
-
+  cout << "cost: "  << std::setprecision(10) << cost << endl;
 }
 
 int main(int argc, char *argv[])
@@ -297,6 +306,8 @@ int main(int argc, char *argv[])
 	int DIM=atoi(argv[3]);
   int rounds = atoi(argv[4]);
   string method = argv[5];
+  string library = argv[6];
+
 	float f;
 
 	timer t;t.start();
@@ -338,9 +349,10 @@ int main(int argc, char *argv[])
 
 	cout << "distM " << t.next() << endl;
 
-  sklearn(D, n, Complete());
+  
 
-  dendroentry *Z;
+  if(library == "scipy"){
+    dendroentry *Z;
     if(method ==  "complete"){
       Z = nn_chain(D, n, Complete());
     }else if(method ==  "ward"){
@@ -353,17 +365,30 @@ int main(int argc, char *argv[])
         cout << "invalid method" << endl;
         exit(1);
     }
+    free(Z);
+  }else if(library == "sklearn"){
+    if(method ==  "complete"){
+      sklearn(D, n, Complete());
+    }else if(method ==  "ward"){
+      nn_chain(D, n, Ward());
+    }else if(method ==  "avg"){
+      sklearn(D, n, Average());
+    }else if(method ==  "avgsq"){
+      sklearn(D, n, Average());
+    }else{
+        cout << "invalid method" << endl;
+        exit(1);
+    }
+    
+  }
+
   
-  free(Z);
 
 	cout << "NNchain " << t.next() << endl;
 	cout << "Total " << t2.next() << endl;
 	cout << endl;
 
   }
-
-	// for(intT i=0; i< 30; ++i){
-	// 	cout << result[i] << endl;
   
 	fclose(pFile);
 	// t.reportTotal("total");
