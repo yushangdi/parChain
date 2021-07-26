@@ -6,7 +6,7 @@
 #include <queue>
 #include <vector>
 #include <map>
-#include "util.h"
+#include "utils.h"
 #include "sampleSort.h"
 #include "unionFind.h"
 #include "gettime.h"
@@ -44,7 +44,10 @@ void label(dendroentry* Z, int n){
 }
 
 
-int condensed_index(int n, int i, int j){
+long condensed_index(int nn, int ii, int jj){
+  long n = (long)nn;
+  long i = (long)ii;
+  long j = (long)jj;
     if (i < j)return n * i - (i * (i + 1) / 2) + (j - i - 1);
     if( i > j)return n * j - (j * (j + 1) / 2) + (i - j - 1);
     cout << "i==j in indexing" << endl;
@@ -317,7 +320,7 @@ int main(int argc, char *argv[])
 	timer t;t.start();
 
 	float *P = new float[n*DIM];
-  double *D = new double[n*(n-1)/2];
+  double *D = new double[((long)n)*((long)(n-1))/2];
 
 
 	/************object generation*************/
@@ -336,21 +339,36 @@ int main(int argc, char *argv[])
 	for(int r = 0; r< rounds; ++ r){
 		cout << "Round " << r << endl;
 		timer t2;t2.start();
-    parallel_for (intT i=0; i<n; i++) {
-      parallel_for (intT j=i+1; j<n; j++) {
+    if(method ==  "avgsq"){
+    long k = 0;
+    for (intT i=0; i<n; i++) {
+      for (intT j=i+1; j<n; j++) {
           double dist = 0;
           for(int d = 0; d < DIM; ++d){
             dist += (P[i*DIM + d] - P[j*DIM + d]) * (P[i*DIM + d] - P[j*DIM + d]);
           }
-          if(method ==  "avgsq"){
-            D[condensed_index(n,i,j)] = dist;
-          }else{
-            D[condensed_index(n,i,j)] = sqrt(dist);
-          }
+          
+            // D[condensed_index(n,i,j)] = sqrt(dist)dist;
+            D[k] = dist;
+          
+        k++;
       // cout << i <<  " " << j << " " << condensed_index(n,i,j) << " " << sqrt(dist) << endl;
       }
     }
-
+  }else{
+    long k = 0;
+    for (intT i=0; i<n; i++) {
+      for (intT j=i+1; j<n; j++) {
+          double dist = 0;
+          for(int d = 0; d < DIM; ++d){
+            dist += (P[i*DIM + d] - P[j*DIM + d]) * (P[i*DIM + d] - P[j*DIM + d]);
+          }
+          // if(k!=condensed_index(n,i,j)) cout << i <<  " " << j << " " << condensed_index(n,i,j) << " " << dist << endl;
+        D[k] =sqrt(dist);
+        k++;
+      }
+    }
+  }
 	cout << "distM " << t.next() << endl;
 
   
