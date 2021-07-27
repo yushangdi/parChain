@@ -5,6 +5,11 @@
 
 #define VERBOSE
 // #define DEBUG
+#define BENCHCACHE
+#define PERF_RANGE
+// #define ELTPERCACHELINE 128/sizeof(intT)
+
+#define ELTPERCACHELINE sizeof(intT)/sizeof(intT)
 
 #ifdef USEJEMALLOC
 #include<jemalloc/jemalloc.h>

@@ -48,6 +48,15 @@ namespace FINDNN {
         LDS::edgeComparator2 EC2;
         double eps;
         const bool local = true;
+#ifdef PERF_RANGE
+        long *distance_computed;
+        long *pointsInRange;
+        void setCounter(long *t_distance_computed, long *t_pointsInRange){
+            distance_computed = t_distance_computed;
+            pointsInRange = t_pointsInRange;
+
+        }
+#endif
 
         RangeQueryCountF1(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
             nodeT *t_nodes, intT *t_rootIdx, LDS::distCacheT **t_tbs, LDS::EDGE *t_edges,
@@ -71,7 +80,10 @@ namespace FINDNN {
         inline void updateDist(intT Rid, bool reach_thresh){
             if(cid != Rid && Rid != e.first){
                 double dist = distComputer->getDistNaive(cid,Rid, -1, e.second, false); //, false
-
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            // pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
                 if(e.second - dist > eps){ e = make_pair(Rid, dist);}  
                 else if(abs(e.second - dist) <= eps && Rid < e.first){e = make_pair(Rid, dist); }
                 // tb->deleteVal(Rid); //does not support delete and insert at the same time, need to remove if parallel
@@ -102,6 +114,10 @@ namespace FINDNN {
         }
 
         inline bool checkComplete(objT *p){
+#ifdef PERF_RANGE
+            // distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
             // if(p->pointDist(qnode->center) > r + EC2.eps) return false;
             intT  Rid = uf->find(p->idx());
             if(cid == Rid ) return false;
@@ -145,7 +161,10 @@ namespace FINDNN {
         double r;
         bool no_cache;
         const bool local = false; // writemin after
-
+#ifdef PERF_RANGE
+        long *distance_computed;
+        long *pointsInRange;
+#endif
 
         RangeQueryCenterF(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
             nodeT *t_nodes, intT *t_rootIdx, LDS::distCacheT **t_tbs, LDS::EDGE *t_edges,
@@ -164,6 +183,13 @@ namespace FINDNN {
             box = Box();
         }
 
+#ifdef PERF_RANGE
+        void setCounter(long *t_distance_computed, long *t_pointsInRange){
+            distance_computed = t_distance_computed;
+            pointsInRange = t_pointsInRange;
+
+        }
+#endif
         ~RangeQueryCenterF(){
         }
         inline intT getFinalNN(){return edges[cid].second;}
@@ -264,6 +290,10 @@ namespace FINDNN {
             }
             
             double dist;
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            // pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
             if(distComputer->id_only) {dist = distComputer->getDistNaive(cid, Rid);}
             else {dist = distComputer->getDistNaive(qnode, getNode(Rid));}
             if(!no_cache) insert(cid, Rid, dist); //TODO: if both full, do not insert
@@ -285,6 +315,10 @@ namespace FINDNN {
         }
 
         inline bool checkComplete(objT *p){
+#ifdef PERF_RANGE
+            // distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
             //already checked by iteminball
             // if(p->pointDist(qnode->center) > r) return false; //eps already added in get box
             intT  Rid = p->idx(); //should all be centers uf->find(p->idx());
