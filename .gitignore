@@ -33,3 +33,5 @@
 
 outputs/*
 datasets/*
+greedyclink/*
+.vscode/

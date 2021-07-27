@@ -226,6 +226,33 @@ map<int, double> *merge(map<int, double> *a, map<int, double> *b, int* mask, int
 
 
 template<class F>
+void sklearn_test(double * D, int n, F new_dist){
+  cout << "test" << endl;
+  typedef tuple<double, int, int> entry;
+  int n_samples = n;
+  int n_nodes = 2*n_samples-1;
+  map<int, double> **A = (map<int, double> **) malloc((n_nodes)*sizeof(map<int, double> *));
+  vector<entry> inertia;
+  // priority_queue<entry, vector<entry>, greater<entry>> inertia;
+  for (intT i=0; i<n; i++) {
+    A[i] = new map<int, double>();
+    for (intT j=0; j<i; j++) {
+      double d = D[condensed_index(n,i,j)];
+      A[i]->insert_or_assign(j,d);
+    }
+    for (intT j=i+1; j<n; j++) {
+      double d = D[condensed_index(n,i,j)];
+      A[i]->insert_or_assign(j,d);
+      // inertia.push(entry(d, i, j));
+      inertia.emplace_back(entry(d, i, j));
+    }
+  }
+
+  make_heap(inertia.begin(), inertia.end());
+  cout << "test end" << endl;
+}
+
+template<class F>
 void sklearn(double * D, int n, F new_dist){
   typedef tuple<double, int, int> entry;
   int n_samples = n;
