@@ -23,6 +23,7 @@
 
 #include <limits>
 #include "distMatrix.h"
+#include "dendrogram.h"
 
 using namespace std;
 
@@ -64,7 +65,7 @@ class MatrixNNFinder {
     PP = newA(pointT, n);
     parallel_for(intT i=0; i<n; ++i) {PP[i] = pointT(t_P[i], i);}
 
-    distComputer = new distF(PP, n, no_cache);
+    distComputer = new distF(PP, n, /* use_range */ false);
 
     rootIdx = newA(intT, n);
     parallel_for(intT i=0; i<n; ++i) {rootIdx[i] = i;}
@@ -190,11 +191,6 @@ class MatrixNNFinder {
     intT rootNodeIdx = nodeIdx.fetch_add(1);
     nodes[rootNodeIdx] = nodeT(newc, round, rootNodeIdx, getNode(u), getNode(v), height);
     rootIdx[newc] = rootNodeIdx;
-    // if(newc==u){
-    //     activeFlags[v] = false;
-    // }else{
-    //     activeFlags[u] = false;
-    // }
   }
 
   inline void updateDist(intT newc, intT round){
@@ -356,7 +352,101 @@ inline void chain_linkage_matrix(TF *finder, timer t1){
   UTIL::PrintFunctionItem("CLINK", "rounds", round);
   delete info;
   free(flags);
-  // finder->distComputer->postProcess(finder);
+  // finder->distComputer->postProcess(finder); will be squared in distance matrix
+}
+
+template<int dim, class pointT>
+inline void completeLinkageMatrix(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps){
+  timer t1;
+  t1.start();
+    // DISTANCE MATRIX
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+
+  cout << "Matrix Distance Complete Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using distT = MatrixDistanceComputer::distComplete3<dim, pointT, nodeT, FINDNN::dummyNodeInfo>;
+
+  using FinderT = MatrixNNFinder<dim, distT>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, false, eps); 
+  chain_linkage_matrix<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+
+}
+
+template<int dim, class pointT>
+inline void wardLinkageMatrix(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps){
+  timer t1;
+  t1.start();
+    // DISTANCE MATRIX
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+
+  cout << "Matrix Distance Ward Linkage of " << n << ", dim " << dim << " points" << endl;
+  using distT = MatrixDistanceComputer::distWard1<dim, pointT, nodeT, FINDNN::dummyNodeInfo, FINDNN::DummyMarkerCenters>;
+
+  using FinderT = MatrixNNFinder<dim, distT>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, false, eps); 
+  chain_linkage_matrix<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+
+}
+
+template<int dim, class pointT>
+inline void avgLinkageMatrix(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps){
+  timer t1;
+  t1.start();
+    // DISTANCE MATRIX
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+
+  cout << "Matrix Distance Average Square Linkage of " << n << ", dim " << dim << " points" << endl; 
+  // using distT = distAverage1<dim, pointT, nodeT>;
+  using distT = MatrixDistanceComputer::distAverage5<dim, pointT, nodeT>;
+
+  using FinderT = MatrixNNFinder<dim, distT>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, false, eps); 
+  chain_linkage_matrix<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+
+}
+
+template<int dim, class pointT>
+inline void avgsqLinkageMatrix(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps){
+  timer t1;
+  t1.start();
+    // DISTANCE MATRIX
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+
+  cout << "Matrix Distance Average Square Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using distT = MatrixDistanceComputer::distAverage4<dim, pointT, nodeT, nodeInfo>; // consecutive point array
+
+  using FinderT = MatrixNNFinder<dim, distT>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, false, eps); 
+  chain_linkage_matrix<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+
 }
 
 }//end pf namespace

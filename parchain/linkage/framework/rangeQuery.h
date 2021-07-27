@@ -13,6 +13,7 @@
 #include "neighbor_parallel.h"
 #include "serialHash.h"
 #include "box.h"
+#include "distMatrix.h"
 
 using namespace std;
 
@@ -338,6 +339,201 @@ namespace FINDNN {
         }
 
     };
+
+    // used for kdtree
+    // template<intT dim, class objT, class nodeInfoT, class distT, class Box>
+    // struct RangeQueryMatrixCountF1{
+    //     typedef typename distT::pointT pointT;
+    //     typedef nodeInfoT nodeInfo;
+    //     typedef typename distT::nodeT nodeT;
+    //     typedef kdTree<dim, pointT, nodeInfo> kdtreeT;
+    //     typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
+    
+    //     UnionFind::ParUF<intT> *uf;
+    //     intT cid;
+    //     pair<intT, double> e;
+    //     DM<dim> *matrix;
+    //     intT pid;
+    //     Box box;
+    //     distT *distComputer;
+    //     LDS::edgeComparator2 EC2;
+    //     double eps;
+    //     const bool local = true;
+
+
+    //     RangeQueryMatrixCountF1(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
+    //         nodeT *t_nodes, intT *t_rootIdx, DM<dim> *t_matrix;, LDS::EDGE *t_edges,
+    //         distT *t_distComputer, intT C, double _eps):
+    //         uf(t_uf), cid(t_cid), matrix(t_matrix),
+    //         distComputer(t_distComputer), eps(_eps){
+    //         EC2 = LDS::edgeComparator2(eps);
+    //         e = make_pair(t_edges[cid].second, t_edges[cid].getW());
+
+    //         pid = getWorkerId();
+    //         tb = distComputer->initClusterTb(pid, C);//clusterTbs[idx];
+    //         box = Box();
+    //     }
+
+    //     ~RangeQueryMatrixCountF1(){
+    //     }
+
+    //     inline intT getFinalNN(){return e.first;}
+    //     inline double getFinalDist(){return e.second;}
+
+    //     inline void updateDist(intT Rid, bool reach_thresh){
+    //         if(cid != Rid && Rid != e.first){
+    //             double dist = matrix->get(cid, Rid);
+    //             if(e.second - dist > eps){ e = make_pair(Rid, dist);}  
+    //             else if(abs(e.second - dist) <= eps && Rid < e.first){e = make_pair(Rid, dist); }
+    //             // tb->deleteVal(Rid); //does not support delete and insert at the same time, need to remove if parallel
+    //         }
+    //     }
+
+    //     inline tuple<intT, bool> incrementTable(intT Rid, intT a = 1){
+    //         return distComputer->incrementTable(tb, Rid,  cid, a);
+    //     }
+
+    //     inline bool isComplete(){return false;}
+    //     inline bool isComplete2(kdnodeT *Q){
+    //         intT  Rid = Q->nInfo.getCId();
+    //         if(cid == Rid ) return true;
+    //         if( Rid != -1){
+    //             intT ct; bool reach_thresh;
+    //             tie(ct, reach_thresh) = incrementTable(Rid, Q->size());
+    //             if (reach_thresh || ct ==  distComputer->kdtrees[Rid]->getN()) updateDist(Rid, reach_thresh);
+    //             return true;
+    //         }else{
+    //             return false;
+    //         }
+    //     }
+
+    //     inline bool checkComplete(objT *p){
+    //         // if(p->pointDist(qnode->center) > r + EC2.eps) return false;
+    //         intT  Rid = uf->find(p->idx());
+    //         if(cid == Rid ) return false;
+    //         intT ct; bool reach_thresh;
+    //         tie(ct, reach_thresh) = incrementTable(Rid);
+    //         if (reach_thresh || ct ==  distComputer->kdtrees[Rid]->getN()) updateDist(Rid, reach_thresh);
+    //         return false;
+    //     }
+
+    //     inline bool Par(kdnodeT *Q){
+    //         return false;  // have to be false if using hashtable for clsuterhash
+    //     }
+
+    //     inline double getBall(nodeT* query, double r){
+    //         return box.getBall(query, r);
+    //     }
+
+    // };
+
+    // need t_m active hash table size to store candidates
+    // invariant: e contain the current nearest neighbor in tbs to cid
+    // insert into (smallid, large id) table, only succeeded one compute and update
+    template<intT dim, class objT, class nodeInfoT, class distT, class Box>
+    struct RangeQueryMatrixCenterF{
+        typedef typename distT::pointT pointT;
+        typedef nodeInfoT nodeInfo;
+        typedef typename distT::nodeT nodeT;
+        typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
+        typedef kdTree<dim, pointT, nodeInfo> kdtreeT;
+
+        UnionFind::ParUF<intT> *uf;
+        intT cid;
+        LDS::EDGE *edges;
+        nodeT *nodes;
+        nodeT *qnode;
+        intT *rootIdx;
+        DM<dim> *matrix; // distance to clusters, store two copies of each distance
+        LDS::edgeComparator2 EC2;
+        distT *distComputer;
+        Box box;
+        double r;
+        bool no_cache;
+        const bool local = false; // writemin after
+
+
+        RangeQueryMatrixCenterF(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
+            nodeT *t_nodes, intT *t_rootIdx,  DM<dim> *t_matrix, LDS::EDGE *t_edges,
+            distT *t_distComputer, bool t_no_cache, intT C, double eps):
+            uf(t_uf), cid(t_cid),
+            distComputer(t_distComputer),
+            no_cache(t_no_cache){
+                EC2 = LDS::edgeComparator2(eps);
+            matrix = t_matrix;
+            edges = t_edges;
+            nodes = t_nodes;
+            rootIdx = t_rootIdx;
+            qnode = getNode(cid);
+            box = Box();
+        }
+
+        ~RangeQueryMatrixCenterF(){
+        }
+        inline intT getFinalNN(){return edges[cid].second;}
+        inline double getFinalDist(){return edges[cid].getW();}
+
+        inline intT idx(nodeT* node){ return node->idx;}
+        inline nodeT *getNode(intT cid){return nodes+rootIdx[cid];}
+        inline intT idx(intT cid){return idx(getNode(cid));}
+
+        inline double my_node_distance_sq(kdnodeT *Q) {
+            pointT qcenter = qnode->center;
+            for (int d = 0; d < dim; ++ d) {
+                if (Q->pMin[d] > qcenter[d] || qcenter[d] > Q->pMax[d]) {
+                // disjoint at dim d, and intersect on dim < d
+                double rsqr = 0;
+                for (int dd = d; dd < dim; ++ dd) {
+                    double tmp = max(Q->pMin[dd] - qcenter[dd], qcenter[dd] - Q->pMax[dd]);
+                    tmp = max(tmp, (double)0);
+                    rsqr += tmp * tmp;
+                }
+                return rsqr;
+                }
+            }
+            return 0; // intersect
+        }
+
+        inline void updateDist(intT Rid){ // need another table!
+            if(cid != Rid && Rid != edges[cid].first){
+                double dist = matrix->get(cid, Rid);
+                utils::writeMin(&edges[cid], LDS::EDGE(cid, Rid, dist), EC2);
+                utils::writeMin(&edges[Rid], LDS::EDGE(Rid, cid, dist), EC2);
+            }
+        }
+
+        inline bool isComplete(){return false;}
+        inline bool isComplete2(kdnodeT *Q){
+            if(distComputer->method == LDS::WARD){
+                double dsq = my_node_distance_sq(Q);
+                double min_n = (double)Q->nInfo.getMinN();
+                double qn = (double)qnode->size();
+                if(dsq > (qn + min_n)/min_n / qn  / 2 * r * r ) return true;
+            }
+            return false;
+        }
+
+        inline bool checkComplete(objT *p){
+            //already checked by iteminball
+            // if(p->pointDist(qnode->center) > r) return false; //eps already added in get box
+            intT  Rid = p->idx(); //should all be centers uf->find(p->idx());
+            if(cid != Rid && Rid != edges[cid].second) updateDist(Rid);
+            return false;
+        }
+
+        inline bool Par(kdnodeT *Q){
+            return Q->size() > 2000; //TODO: try turn off
+            // return false; 
+        }
+
+        // find points in `root` within box of side `r` centered at `query` node
+        inline double getBall(nodeT* query, double _r){
+            r = _r;
+            return box.getBall(query, r);
+        }
+
+    };
+
 
     template<class pointT, class func, class nodeT>
     void NNcandidate(nodeT *Q, pointT center, double r, func* f) {

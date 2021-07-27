@@ -1,5 +1,5 @@
-#ifndef METHOD_CHAIN_TREE_AVE_H
-#define METHOD_CHAIN_TREE_AVE_H
+#ifndef METHOD_CHAIN_TREE_H
+#define METHOD_CHAIN_TREE_H
 
 #include "sequence.h"
 #include "geometry.h"
@@ -13,6 +13,7 @@
 #include "serialHash.h"
 
 #include "kdTree2.h"
+#include "dendrogram.h"
 
 // #define TIMING2
 #define ALLOCDOUBLE
@@ -857,6 +858,108 @@ inline void chain_linkage(TF *finder, timer t1){
   delete info;
   free(flags);
   finder->distComputer->postProcess(finder);
+}
+
+
+template<int dim, class pointT>
+inline void completeLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "complete Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>; // point array
+  using distT = distComplete3<dim, pointT, nodeT, nodeInfo>; //kdtree
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>;
+  bool no_cache = true;
+  using Fr = FINDNN::RangeQueryCountF1<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::MarkClusterId<dim, Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void wardLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "ward Linkage of " << n << ", dim " << dim << " points" << endl;
+  using nodeInfo = FINDNN::WLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo3<dim, pointT *>;
+  using MCenter = FINDNN::MarkKdTreeCenters<dim, pointT, nodeInfo>;
+  using distT = distWard1<dim, pointT, nodeT, nodeInfo, MCenter>;
+  using boxT = FINDNN::queryBallWard<dim, nodeT>;
+  bool no_cache = true;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void avgLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "average Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+  using distT = distAverage5<dim, pointT, nodeT>; // consecutive point array
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>;
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "average Linkage of " << n << ", dim " << dim << " points, sqeuclidean" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+  using distT = distAverage4<dim, pointT, nodeT, nodeInfo>; // consecutive point array
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>; //still use simple, distT will  postprocess
+  bool no_cache = true;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
 }
 
 }//end of namespace
