@@ -55,7 +55,7 @@ for wk in "${workers[@]}"; do
 	if [[ "${wk}" -eq 1 ]];then
             echo "CILK_NWORKERS=${wk} ./parchain/linkage/framework/linkage -matrixrange -method $METHOD -r 1 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs > outputs/outputs_matrix_range/${METHOD}_matrix_range_${dataset}_${wk}th.txt"
             CILK_NWORKERS=${wk} ./parchain/linkage/framework/linkage -matrixrange -method $METHOD -r 1 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs \
-                > outputs/outputs_matrix_range/${METHOD}_matrix_${dataset}_${wk}th.txt
+                > outputs/outputs_matrix_range/${METHOD}_matrix_range_${dataset}_${wk}th.txt
         else
             echo "CILK_NWORKERS=${wk} numactl -i all ./parchain/linkage/framework/linkage -matrixrange -method $METHOD -r 3 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs > outputs/outputs_matrix_range/${METHOD}_matrix_range_${dataset}_${wk}th.txt"
             CILK_NWORKERS=${wk} numactl -i all ./parchain/linkage/framework/linkage -matrixrange -method $METHOD -r 3 -d ${dims[$ind]} -eps ${eps[$ind]} ./datasets/${dataset}.pbbs \
