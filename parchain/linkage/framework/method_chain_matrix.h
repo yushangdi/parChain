@@ -317,7 +317,7 @@ inline void chain_linkage_matrix(TF *finder, timer t1){
 	UTIL::PrintSubtimer("initialize", t1.next());
 #endif
 //  ofstream file_obj;
-//  file_obj.open("debug/avg_2DVar1M_edges_96.txt"); //"+ to_string(round) + "
+//  file_obj.open("debug/avgsq_10K_m.txt"); 
 
   int round = 0;
   bool print = false;

@@ -313,6 +313,9 @@ class MatrixRangeNNFinder { //: public NNFinder<dim>
     typedef FINDNN::AllPtsNN<dim, kdnodeT> F;
     F *f = new F(edges, eps);
     FINDNNP::dualtree<kdnodeT, F>(kdtree->root, kdtree->root, f, false);
+    if(distComputer->method == LDS::AVGSQ){
+      parallel_for(intT i=0; i<n; ++i) {edges[i].w = edges[i].w * edges[i].w;}
+    }
     parallel_for(intT i=0; i<n; ++i) {
       info->updateChain(edges[i].first, edges[i].second, edges[i].getW());
     }
@@ -412,7 +415,7 @@ inline void chain_linkage(TF *finder, timer t1){
 	UTIL::PrintSubtimer("initialize", t1.next());
 #endif
 //  ofstream file_obj;
-//  file_obj.open("debug/avg_UCI1_32_1th.txt"); //"+ to_string(round) + "
+//  file_obj.open("debug/avgsq_10K_mr.txt");
 
   int round = 0;
   bool print = false;
@@ -574,7 +577,7 @@ inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, doub
   cout << "Matrix Range Distance Average Square Linkage of " << n << ", dim " << dim << " points" << endl; 
   using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
   using distT = MatrixDistanceComputer::distAverage4<dim, pointT, nodeT, nodeInfo>; // consecutive point array
-  using boxT = FINDNN::queryBallSimple<dim, nodeT>; //still use simple, distT will  postprocess
+  using boxT = FINDNN::queryBallSqrt<dim, nodeT>; 
   using Fr = FINDNN::RangeQueryMatrixCenterF<dim, pointT, nodeInfo, distT, boxT>;
 
   using FinderT = MatrixRangeNNFinder<dim, distT, Fr>;

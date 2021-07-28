@@ -212,8 +212,9 @@ struct distAverage4: public distMatrixAbstract<dim, pointTT, nodeTT> {
 
   template<class F>
   inline void postProcess(F *finder){
-    parallel_for(intT i=0; i<2*finder->n-1; ++i) {finder->nodes[i].height = finder->nodes[i].height * finder->nodes[i].height;}
-    parallel_for(intT i=0; i<finder->n; ++i) {finder->uf->values[i] = finder->uf->values[i]  * finder->uf->values[i];}
+    // no need, already squared in distance matrix.
+    // parallel_for(intT i=0; i<2*finder->n-1; ++i) {finder->nodes[i].height = finder->nodes[i].height * finder->nodes[i].height;}
+    // parallel_for(intT i=0; i<finder->n; ++i) {finder->uf->values[i] = finder->uf->values[i]  * finder->uf->values[i];}
   }
 
   ~distAverage4(){
