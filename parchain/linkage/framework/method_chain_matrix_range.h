@@ -392,9 +392,6 @@ inline void link_terminal_nodes(UnionFind::ParUF<intT> *uf, TF *finder, TreeChai
     intT newc = merged.A[i];
     finder->updateDist(newc, round);
   }
-#ifdef TIMING2
-	if(LINKAGE_DOPRINT(round)){ UTIL::PrintSubtimer(":::delete old table", t1.next());}
-#endif
   free(merged.A);
 
 }
