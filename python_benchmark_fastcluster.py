@@ -45,11 +45,22 @@ def main_vector_nnchain(dataset, method, metric, drop = False, save = True):
 	# if(save): 
 	# 	np.savetxt(dataset + "-" +  method + "-" + metric + "-vec-dendro.txt", Z)
 
+def main_generic(dataset, method, metric='euclidean', save = True):
+	data_addr = ADDR + dataset + ".pbbs"
+	data = pd.read_csv(data_addr,  sep = " ", header=None)
+	# print(data.head())
+	start_time = time.time()
+	Z = fastcluster.linkage_generic(data, method=method, metric=metric, preserve_input=True)
+	end_time = time.time()
+	print(dataset, method + "-" + metric + "-generic", np.sum(Z[:,2]), end_time-start_time)
+	# if(save):
+	# 	np.savetxt(dataset + "-" +  method + "-" + metric + "-vec-dendro.txt", Z)
+
 if __name__ == "__main__":
 	dataset = sys.argv[1]
 	method = sys.argv[2]
 	drop = False
-	if method not in ["avg", "avgsq", 'complete', "average", "single", "ward", "all", "linear"]:
+	if method not in ["avg", "avgsq", 'complete', "average", "single", "ward", "all", "linear", "generic-all"]:
 		print("invalid method ", method)
 	else:
 		if method == "all":
@@ -60,6 +71,11 @@ if __name__ == "__main__":
 			main_vector(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "average", "sqeuclidean", drop)
+		if method == "generic-all":
+			main_generic(dataset, 'complete')
+			main_generic(dataset, "ward")
+			main_generic(dataset, "average")
+			main_generic(dataset, "average", "sqeuclidean")
 		elif method == "linear":
 			main_vector(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "ward", "euclidean", drop)
