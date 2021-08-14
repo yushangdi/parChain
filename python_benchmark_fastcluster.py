@@ -71,7 +71,7 @@ if __name__ == "__main__":
 			main_vector(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "average", "sqeuclidean", drop)
-		if method == "generic-all":
+		elif method == "generic-all":
 			main_generic(dataset, 'complete')
 			main_vector(dataset, "ward")
 			main_generic(dataset, "average")
@@ -89,8 +89,16 @@ if __name__ == "__main__":
 		elif method == "avg":
 			main(dataset, 'average')
 		elif method == "avgsq":
-			main(dataset, "average", "sqeuclidean", drop)
+			main_vector_nnchain(dataset, "average", "sqeuclidean", drop)
 		elif method == "ward":
 			main_vector_nnchain(dataset, "ward", "euclidean", drop)
+		elif method == "complete-generic":
+			main_generic(dataset, 'complete')
+		elif method == "avg-generic":
+			main_generic(dataset, 'average')
+		elif method == "avgsq-generic":
+			main_generic(dataset, "average", "sqeuclidean")
+		elif method == "ward-generic":
+			main_vector(dataset, "ward", "euclidean")
 		else:
 			main_vector(dataset, "ward", "euclidean", drop)
