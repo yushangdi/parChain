@@ -60,7 +60,7 @@ if __name__ == "__main__":
 	dataset = sys.argv[1]
 	method = sys.argv[2]
 	drop = False
-	if method not in ["avg", "avgsq", 'complete', "average", "single", "ward", "all", "linear", "generic-all"]:
+	if method not in ["avg", "avgsq", 'complete', "average", "single", "ward", "all", "linear","avg-generic", "avgsq-generic", 'complete-generic', "average-generic", "generic-all"]:
 		print("invalid method ", method)
 	else:
 		if method == "all":
