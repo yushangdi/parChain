@@ -31,7 +31,7 @@ namespace FINDNN {
 
     // used for kdtree
     template<intT dim, class objT, class nodeInfoT, class distT, class Box>
-    struct RangeQueryCountF1{
+    struct RangeQueryCountF1NoCache{
         typedef typename distT::pointT pointT;
         typedef nodeInfoT nodeInfo;
         typedef typename distT::nodeT nodeT;
@@ -59,7 +59,7 @@ namespace FINDNN {
         }
 #endif
 
-        RangeQueryCountF1(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
+        RangeQueryCountF1NoCache(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
             nodeT *t_nodes, intT *t_rootIdx, LDS::distCacheT **t_tbs, LDS::EDGE *t_edges,
             distT *t_distComputer, bool t_no_cache, intT C, double _eps):
             uf(t_uf), cid(t_cid), //edges(t_edges), 
@@ -72,7 +72,7 @@ namespace FINDNN {
             box = Box();
         }
 
-        ~RangeQueryCountF1(){
+        ~RangeQueryCountF1NoCache(){
         }
 
         inline intT getFinalNN(){return e.first;}
@@ -98,6 +98,191 @@ namespace FINDNN {
             // if (inserted) return make_tuple(a, false);
             // if (reach_thresh) return make_tuple(0, true);
             // return make_tuple(tb->find_thresh(Rid).second, false);
+        }
+
+        inline bool isComplete(){return false;}
+        inline bool isComplete2(kdnodeT *Q){
+            intT  Rid = Q->nInfo.getCId();
+            if(cid == Rid ) return true;
+            if( Rid != -1){
+                intT ct; bool reach_thresh;
+                tie(ct, reach_thresh) = incrementTable(Rid, Q->size());
+                if (reach_thresh || ct ==  distComputer->kdtrees[Rid]->getN()) updateDist(Rid, reach_thresh);
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+        inline bool checkComplete(objT *p){
+#ifdef PERF_RANGE
+            // distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
+            // if(p->pointDist(qnode->center) > r + EC2.eps) return false;
+            intT  Rid = uf->find(p->idx());
+            if(cid == Rid ) return false;
+            intT ct; bool reach_thresh;
+            tie(ct, reach_thresh) = incrementTable(Rid);
+            if (reach_thresh || ct ==  distComputer->kdtrees[Rid]->getN()) updateDist(Rid, reach_thresh);
+            return false;
+        }
+
+        inline bool Par(kdnodeT *Q){
+            return false;  // have to be false if using hashtable for clsuterhash
+        }
+
+        inline double getBall(nodeT* query, double r){
+            return box.getBall(query, r);
+        }
+
+    };
+
+    // used for kdtree
+    template<intT dim, class objT, class nodeInfoT, class distT, class Box>
+    struct RangeQueryCountF1{
+        typedef typename distT::pointT pointT;
+        typedef nodeInfoT nodeInfo;
+        typedef typename distT::nodeT nodeT;
+        typedef typename distT::clusterCacheT clusterCacheT;
+        typedef kdTree<dim, pointT, nodeInfo> kdtreeT;
+        typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
+    
+        UnionFind::ParUF<intT> *uf;
+        intT cid;
+        pair<intT, double> e;
+        clusterCacheT *tb; //
+        nodeT *nodes;
+        nodeT *qnode;
+        intT *rootIdx;
+        LDS::distCacheT **tbs; //
+        intT pid;
+        Box box;
+        distT *distComputer;
+        LDS::edgeComparator2 EC2;
+        double eps;
+        const bool local = true;
+        bool no_cache;
+#ifdef PERF_RANGE
+        long *distance_computed;
+        long *pointsInRange;
+        void setCounter(long *t_distance_computed, long *t_pointsInRange){
+            distance_computed = t_distance_computed;
+            pointsInRange = t_pointsInRange;
+
+        }
+#endif
+
+        RangeQueryCountF1(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
+            nodeT *t_nodes, intT *t_rootIdx, LDS::distCacheT **t_tbs, LDS::EDGE *t_edges,
+            distT *t_distComputer, bool t_no_cache, intT C, double _eps):
+            uf(t_uf), cid(t_cid), no_cache(t_no_cache),//edges(t_edges), 
+            distComputer(t_distComputer), eps(_eps){
+            EC2 = LDS::edgeComparator2(eps);
+            e = make_pair(t_edges[cid].second, t_edges[cid].getW());
+
+            pid = getWorkerId();
+            tb = distComputer->initClusterTb(pid, C);//clusterTbs[idx];
+            box = Box();
+
+            tbs = t_tbs;
+            nodes = t_nodes;
+            rootIdx = t_rootIdx;
+            qnode = getNode(cid);
+        }
+
+        ~RangeQueryCountF1(){
+        }
+
+        inline intT getFinalNN(){return e.first;}
+        inline double getFinalDist(){return e.second;}
+
+        inline intT idx(nodeT* node){ return node->idx;}
+        inline nodeT *getNode(intT cid){return nodes+rootIdx[cid];}
+        inline intT idx(intT cid){return idx(getNode(cid));}
+
+        // return 0 if not found
+        // return distance if found
+        inline double find(intT qid, intT rid){
+            CHECK_NO_CACHE(-203)
+            intT qIdx = idx(qid);
+            intT rIdx = idx(rid);
+            
+            typename LDS::distCacheT::eType result;
+            bool reach_thresh;
+            tie(result, reach_thresh) = tbs[qIdx]->find_thresh(rid);
+            if(!reach_thresh && result.idx == rIdx){
+			return result.dist;
+            }
+            
+            tie(result, reach_thresh) = tbs[rIdx]->find_thresh(qid);
+            if(!reach_thresh && result.idx == qIdx){
+			return result.dist;
+            }
+            return UNFOUND_TOKEN;
+        }
+
+        inline void insert(intT qid, intT rid, double d){
+            if(d == LARGER_THAN_UB){
+                return;
+            }
+            CHECK_NO_CACHE(-222)
+            intT qIdx = idx(qid);
+            intT rIdx = idx(rid);
+
+            tbs[qIdx]->insert2(LDS::hashClusterAveET(rid, rIdx, d));
+            tbs[rIdx]->insert2(LDS::hashClusterAveET(qid, qIdx, d));
+        }
+
+        // return true when insert if sucussful or tables full
+        // return true means need to compute distance
+        inline bool insert_check(intT qid, intT rid){
+            CHECK_NO_CACHE(-233)
+            if(qid > rid){
+                swap(qid, rid);
+            }
+            intT qIdx = idx(qid);
+            intT rIdx = idx(rid);
+            bool inserted; bool reach_thresh;
+            tie(inserted, reach_thresh) = tbs[qIdx]->insert_thresh(LDS::hashClusterAveET(rid, rIdx, CHECK_TOKEN));
+            if(!reach_thresh) return inserted;
+
+            tie(inserted, reach_thresh) = tbs[rIdx]->insert_thresh(LDS::hashClusterAveET(qid, qIdx, CHECK_TOKEN));
+            if(!reach_thresh) return inserted;
+            return true;
+        }
+
+        inline void updateDist(intT Rid, bool reach_thresh){
+            if(cid != Rid && Rid != e.first){
+
+                if(!no_cache){
+                bool success = insert_check(cid, Rid);
+                if(!success){  // only compute distance once
+                    double dist = find(cid, Rid);
+                    // success = false only when insertions fail and reach_thresh is false
+                    if(dist == UNFOUND_TOKEN){  cout << "should not find unfound_token" << endl;exit(1);}
+                    if(dist != CHECK_TOKEN){              
+                        if(e.second - dist > eps){ e = make_pair(Rid, dist);}  
+                        else if(abs(e.second - dist) <= eps && Rid < e.first){e = make_pair(Rid, dist); }
+                    }
+                    return;  
+                }
+                }
+
+                double dist = distComputer->getDistNaive(cid,Rid, -1, e.second, false); //, false
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            // pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
+                if(!no_cache) insert(cid, Rid, dist); 
+                if(e.second - dist > eps){ e = make_pair(Rid, dist);}  
+                else if(abs(e.second - dist) <= eps && Rid < e.first){e = make_pair(Rid, dist); }
+                // tb->deleteVal(Rid); //does not support delete and insert at the same time, need to remove if parallel
+            }
+        }
+
+        inline tuple<intT, bool> incrementTable(intT Rid, intT a = 1){
+            return distComputer->incrementTable(tb, Rid,  cid, a);
         }
 
         inline bool isComplete(){return false;}
@@ -340,92 +525,6 @@ namespace FINDNN {
 
     };
 
-    // used for kdtree
-    // template<intT dim, class objT, class nodeInfoT, class distT, class Box>
-    // struct RangeQueryMatrixCountF1{
-    //     typedef typename distT::pointT pointT;
-    //     typedef nodeInfoT nodeInfo;
-    //     typedef typename distT::nodeT nodeT;
-    //     typedef kdTree<dim, pointT, nodeInfo> kdtreeT;
-    //     typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
-    
-    //     UnionFind::ParUF<intT> *uf;
-    //     intT cid;
-    //     pair<intT, double> e;
-    //     DM<dim> *matrix;
-    //     intT pid;
-    //     Box box;
-    //     distT *distComputer;
-    //     LDS::edgeComparator2 EC2;
-    //     double eps;
-    //     const bool local = true;
-
-
-    //     RangeQueryMatrixCountF1(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
-    //         nodeT *t_nodes, intT *t_rootIdx, DM<dim> *t_matrix;, LDS::EDGE *t_edges,
-    //         distT *t_distComputer, intT C, double _eps):
-    //         uf(t_uf), cid(t_cid), matrix(t_matrix),
-    //         distComputer(t_distComputer), eps(_eps){
-    //         EC2 = LDS::edgeComparator2(eps);
-    //         e = make_pair(t_edges[cid].second, t_edges[cid].getW());
-
-    //         pid = getWorkerId();
-    //         tb = distComputer->initClusterTb(pid, C);//clusterTbs[idx];
-    //         box = Box();
-    //     }
-
-    //     ~RangeQueryMatrixCountF1(){
-    //     }
-
-    //     inline intT getFinalNN(){return e.first;}
-    //     inline double getFinalDist(){return e.second;}
-
-    //     inline void updateDist(intT Rid, bool reach_thresh){
-    //         if(cid != Rid && Rid != e.first){
-    //             double dist = matrix->get(cid, Rid);
-    //             if(e.second - dist > eps){ e = make_pair(Rid, dist);}  
-    //             else if(abs(e.second - dist) <= eps && Rid < e.first){e = make_pair(Rid, dist); }
-    //             // tb->deleteVal(Rid); //does not support delete and insert at the same time, need to remove if parallel
-    //         }
-    //     }
-
-    //     inline tuple<intT, bool> incrementTable(intT Rid, intT a = 1){
-    //         return distComputer->incrementTable(tb, Rid,  cid, a);
-    //     }
-
-    //     inline bool isComplete(){return false;}
-    //     inline bool isComplete2(kdnodeT *Q){
-    //         intT  Rid = Q->nInfo.getCId();
-    //         if(cid == Rid ) return true;
-    //         if( Rid != -1){
-    //             intT ct; bool reach_thresh;
-    //             tie(ct, reach_thresh) = incrementTable(Rid, Q->size());
-    //             if (reach_thresh || ct ==  distComputer->kdtrees[Rid]->getN()) updateDist(Rid, reach_thresh);
-    //             return true;
-    //         }else{
-    //             return false;
-    //         }
-    //     }
-
-    //     inline bool checkComplete(objT *p){
-    //         // if(p->pointDist(qnode->center) > r + EC2.eps) return false;
-    //         intT  Rid = uf->find(p->idx());
-    //         if(cid == Rid ) return false;
-    //         intT ct; bool reach_thresh;
-    //         tie(ct, reach_thresh) = incrementTable(Rid);
-    //         if (reach_thresh || ct ==  distComputer->kdtrees[Rid]->getN()) updateDist(Rid, reach_thresh);
-    //         return false;
-    //     }
-
-    //     inline bool Par(kdnodeT *Q){
-    //         return false;  // have to be false if using hashtable for clsuterhash
-    //     }
-
-    //     inline double getBall(nodeT* query, double r){
-    //         return box.getBall(query, r);
-    //     }
-
-    // };
 
     // need t_m active hash table size to store candidates
     // invariant: e contain the current nearest neighbor in tbs to cid

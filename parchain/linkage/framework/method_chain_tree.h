@@ -870,7 +870,7 @@ inline void completeLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, d
   using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>; // point array
   using distT = distComplete3<dim, pointT, nodeT, nodeInfo>; //kdtree
   using boxT = FINDNN::queryBallSimple<dim, nodeT>;
-  bool no_cache = true;
+  bool no_cache = cache_size == 0;
   using Fr = FINDNN::RangeQueryCountF1<dim, pointT, nodeInfo, distT, boxT>;
   using M = FINDNN::MarkClusterId<dim, Fr>;
 
@@ -896,7 +896,7 @@ inline void wardLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, doubl
   using MCenter = FINDNN::MarkKdTreeCenters<dim, pointT, nodeInfo>;
   using distT = distWard1<dim, pointT, nodeT, nodeInfo, MCenter>;
   using boxT = FINDNN::queryBallWard<dim, nodeT>;
-  bool no_cache = true;
+  bool no_cache = cache_size == 0;
   using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
   using M = FINDNN::DummyMarker<Fr>;
 
@@ -946,7 +946,7 @@ inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, doub
   using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
   using distT = distAverage4<dim, pointT, nodeT, nodeInfo>; // consecutive point array
   using boxT = FINDNN::queryBallSimple<dim, nodeT>; //still use simple, distT will  postprocess
-  bool no_cache = true;
+  bool no_cache = cache_size == 0;
   using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
   using M = FINDNN::DummyMarker<Fr>;
 

@@ -341,7 +341,7 @@ struct distComplete3: public distAbstract {
   clusterCacheT *clusterTbs; // cluster to count
   uintT n;
   intT PNum;
-  bool no_cache;
+  // bool no_cache;
   const bool id_only = true;
   bool nn_process = true;
   LDS::Method method = LDS::COMP;
@@ -392,7 +392,7 @@ struct distComplete3: public distAbstract {
     return make_tuple(get<1>(tb[Rid]), false);
   }
     
-  distComplete3(pointT *t_PP, intT t_n, bool t_no_cache):PP(t_PP), n(t_n), no_cache(t_no_cache){
+  distComplete3(pointT *t_PP, intT t_n, bool t_no_cache):PP(t_PP), n(t_n){ //, no_cache(t_no_cache)
     kdtrees = (kdtreeT **) malloc(n*sizeof(kdtreeT *));
     parallel_for(intT i=0; i<n; ++i) {
       kdtrees[i] = new kdtreeT(PP + i, 1, false);
@@ -519,7 +519,7 @@ struct distWard1: public distAbstract {
   typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
   typedef kdTree<dim, pointT, nodeInfo> kdtreeT;
 
-  bool no_cache = true;
+  // bool no_cache = true;
   bool id_only = true;
   LDS::Method method = LDS::WARD;
   pointT *PP;
@@ -647,7 +647,7 @@ struct distCubicDummy: public distAbstract {
   pointT *centers; //ith location is the center of cluster activeCluster[i], need to be contiguous when building tree
   // intT *centerMap; // ith location is the idx of cluster i in centers 
 
-  long dummy;
+  intT *dummy;
 
   // copy points from oldArray[oldOffset:oldOffset+n] to newArray[newOffset:newOffset+n]
   inline void copyPoints(pointT *oldArray, pointT *newArray, intT copyn, intT oldOffset, intT newOffset){
@@ -676,6 +676,8 @@ struct distCubicDummy: public distAbstract {
     parallel_for(intT i=0; i<n; ++i) {centers[i] = PP[i];}
     // parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
 
+    dummy = newA(intT, getWorkers() * ELTPERCACHELINE);
+
   }
 
     inline void initNodes(nodeT *nodes, intT n){
@@ -694,8 +696,9 @@ struct distCubicDummy: public distAbstract {
     pair<pair<intT, intT>, double> result = FINDNN::bruteForceAverage(inode, jnode, clusteredPts);
     parallel_for(intT dummyi = 0; dummyi<inode->size(); dummyi++){
       parallel_for(intT dummyj = 0; dummyj<jnode->size(); dummyj++){
-      parallel_for(intT dummyi = 0; dummyi<inode->size(); dummyi++){
-      dummy += PP[dummyi].pointDist(PP[dummyj]);
+        intT id = getWorkerId() * ELTPERCACHELINE;
+      for(intT dummyi = 0; dummyi<inode->size(); dummyi++){
+      dummy[id] += PP[dummyi].pointDist(PP[dummyj]);
     }
     }
     }
@@ -785,7 +788,8 @@ struct distCubicDummy: public distAbstract {
   }
 
   ~distCubicDummy(){
-    cout << "dummy" << endl;
+    cout << "dummy " << dummy[0] << endl;
+    free(dummy);
     free(clusteredPts1);
     free(clusteredPts2);
     free(clusterOffsets);
