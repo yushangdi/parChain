@@ -120,6 +120,8 @@ UnionFind::ParUF<intT> *linkage(point<dim>* P, intT n, commandLine params, Union
       ChainTree::avgLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else if(method ==  "avgsq"){
       ChainTree::avgsqLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
+  }else if(method ==  "dummy"){
+      ChainTree::dummyCubicLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else{
       cout << "invalid method" << endl;
       exit(1);

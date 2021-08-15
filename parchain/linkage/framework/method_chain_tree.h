@@ -962,5 +962,30 @@ inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, doub
   UTIL::PrintSubtimer("CLINK", t1.next());
 }
 
+template<int dim, class pointT>
+inline void dummyCubicLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "dummy Cubic Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+  using distT = distCubicDummy<dim, pointT, nodeT>; // consecutive point array
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>;
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
 }//end of namespace
 #endif

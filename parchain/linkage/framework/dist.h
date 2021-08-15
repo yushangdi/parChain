@@ -626,6 +626,173 @@ struct distWard1: public distAbstract {
 };
 
 
+//////////////////////////////////// Dummy O(n^3) Linkage Functions ///////////////////////////////
+
+
+// same as distAverage5, but dummy cubic computations
+template<int dim, class pointTT, class nodeTT>
+struct distCubicDummy: public distAbstract {
+  typedef pointTT pointT;
+  typedef nodeTT nodeT;
+
+  // private:
+  pointT *clusteredPts1;
+  pointT *clusteredPts2;//clusteredPts point to one of the two
+  pointT *PP;//used to initNodes only
+  intT *clusterOffsets;  //same order as activeClusters in finder
+  pointT *clusteredPts;
+
+  LDS::Method method = LDS::AVG;
+
+  pointT *centers; //ith location is the center of cluster activeCluster[i], need to be contiguous when building tree
+  // intT *centerMap; // ith location is the idx of cluster i in centers 
+
+  long dummy;
+
+  // copy points from oldArray[oldOffset:oldOffset+n] to newArray[newOffset:newOffset+n]
+  inline void copyPoints(pointT *oldArray, pointT *newArray, intT copyn, intT oldOffset, intT newOffset){
+      parallel_for(intT j = 0; j < copyn; ++j){
+          newArray[newOffset + j] = oldArray[oldOffset+j];
+      }
+    }
+  
+  inline static void printName(){
+    cout << "distAverage5 point array, norm = 1, rebuild tree" << endl;
+  }
+
+  distCubicDummy(pointT *t_PP, intT n, bool t_no_cache):PP(t_PP){
+    clusteredPts1 = newA(pointT, n);
+    clusteredPts2 = newA(pointT, n);
+    clusteredPts = clusteredPts1;
+    parallel_for(intT i=0; i<n; ++i) {
+      clusteredPts1[i]=PP[i];
+    }
+    clusterOffsets = newA(intT, n);
+    parallel_for(intT i=0; i<n; ++i) {clusterOffsets[i] = i;}
+
+    centers = newA(pointT, n);
+    // centerMap = newA(intT, t_n);
+
+    parallel_for(intT i=0; i<n; ++i) {centers[i] = PP[i];}
+    // parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
+
+  }
+
+    inline void initNodes(nodeT *nodes, intT n){
+      parallel_for(intT i=0; i<n; ++i) {nodes[i] = nodeT(i, PP[i]);}
+    }
+
+    double getDistNaive(intT cid1, intT cid2, 
+                          double lb = -1, double ub = numeric_limits<double>::max(), 
+                          bool par = true){ 
+        return this->getDistNaive(cid1,cid2);
+    }
+
+    double getDistNaive(nodeT *inode,  nodeT *jnode, 
+                          double lb = -1, double ub = numeric_limits<double>::max(), 
+                          bool par = true){ 
+    pair<pair<intT, intT>, double> result = FINDNN::bruteForceAverage(inode, jnode, clusteredPts);
+    parallel_for(intT dummyi = 0; dummyi<inode->size(); dummyi++){
+      parallel_for(intT dummyj = 0; dummyj<jnode->size(); dummyj++){
+      parallel_for(intT dummyi = 0; dummyi<inode->size(); dummyi++){
+      dummy += PP[dummyi].pointDist(PP[dummyj]);
+    }
+    }
+    }
+
+    return result.second;
+    }
+  
+    template<class kdnodeT2, class Fs>
+    inline void getRadius(intT cid, kdnodeT2 *root, Fs *fs){
+      this->getRadius(cid, root, fs);
+    }
+
+
+
+  template<class F>
+  inline void update(intT round, F *finder){
+    intT *activeClusters = finder->activeClusters;
+    intT  C = finder->C;
+    //  put points into clusters
+    parallel_for(intT i = 0; i < C; ++i){
+      clusterOffsets[i] = finder->getNode(activeClusters[i])->n;
+    }
+    sequence::prefixSum(clusterOffsets, 0, C);
+    pointT *oldArray = clusteredPts;
+    pointT *newArray = clusteredPts1;
+    if(clusteredPts == clusteredPts1){
+      newArray  = clusteredPts2;
+    }
+
+    //TODO: optimize for 2 clusters
+    parallel_for(intT i = 0; i < C; ++i){
+      intT cid  = activeClusters[i];
+      nodeT *clusterNode = finder->getNode(cid);
+      intT oldOffset = clusterNode->getOffset(); // must save this before setting new
+      intT newOffset = clusterOffsets[i];
+      clusterNode->setOffset(newOffset);
+      if(clusterNode->round == round){//merged this round, copy left and right
+        nodeT *clusterNodeL = clusterNode->left;
+        oldOffset = clusterNodeL->getOffset();
+        copyPoints(oldArray, newArray, clusterNodeL->n, oldOffset, newOffset);
+        newOffset += clusterNodeL->n;
+
+        nodeT *clusterNodeR = clusterNode->right;
+        oldOffset = clusterNodeR->getOffset();
+        copyPoints(oldArray, newArray, clusterNodeR->n, oldOffset, newOffset);
+
+      }else{//not merged this round, just copy
+        copyPoints(oldArray, newArray, clusterNode->n, oldOffset, newOffset);
+      } 
+    }
+    clusteredPts = newArray;
+
+    parallel_for(intT i = 0; i < C; ++i){
+      intT cid = finder->activeClusters[i];
+      nodeT *clusterNode = finder->getNode(cid);
+      centers[i] = pointT(clusterNode->center, cid);
+      // centerMap[cid] = i;
+    }
+
+    // build kdtree
+    finder->kdtree->kdTreeRebuild(centers, C);
+
+  }
+  
+  inline double updateDistO(double d1, double d2, double nql, double nqr, double nr, double dij){
+    double n1 = (double)nql * (double)nr;
+    double n2 = (double)nqr * (double)nr;
+    double alln = n1 + n2 ;
+    d1 = n1 / alln * d1;
+    d2 = n2 / alln * d2;
+    return d1 + d2;
+  }
+
+  inline double updateDistN(double d1, double d2, double d3, double d4, 
+                       double nql, double nqr, double nrl, double nrr,
+                       double dij, double dklr){
+    double n1 = (double)nql * (double)nrl;
+    double n2 = (double)nql * (double)nrr;
+    double n3 = (double)nqr * (double)nrl;
+    double n4 = (double)nqr * (double)nrr;
+    double alln = n1 + n2 + n3 + n4;
+    d1 = n1 / alln * d1;
+    d2 = n2 / alln * d2;
+    d3 = n3 / alln * d3;
+    d4 = n4 / alln * d4;
+    return d1  + d2  + d3 + d4;
+  }
+
+  ~distCubicDummy(){
+    cout << "dummy" << endl;
+    free(clusteredPts1);
+    free(clusteredPts2);
+    free(clusterOffsets);
+    free(centers);
+  }
+
+};
 
 
 //////////////////////// HDBSCAN - Boruvka //////////////////////////////////
