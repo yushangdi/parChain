@@ -94,6 +94,7 @@ class TreeNNFinder { //: public NNFinder<dim>
 #ifdef PERF_RANGE
   long *distance_computed;
   long *pointsInRange;
+  long *pointsInDist;
   // long max_max_cache_used_allrounds=0;
   // long max_avg_cache_used_allrounds = 0;
   // long times_cache_full;
@@ -162,7 +163,8 @@ class TreeNNFinder { //: public NNFinder<dim>
   cout << ELTPERCACHELINE * getWorkers() << endl;
   distance_computed = newA(long, ELTPERCACHELINE * getWorkers());
   pointsInRange = newA(long, ELTPERCACHELINE * getWorkers());
-  for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;}
+  pointsInDist = newA(long, ELTPERCACHELINE * getWorkers());
+  for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;pointsInDist[i]=0;}
 #endif  
 
     nodeIdx.store(n); // have used n nodes
@@ -202,6 +204,7 @@ class TreeNNFinder { //: public NNFinder<dim>
 #ifdef PERF_RANGE
     free(distance_computed);
     free(pointsInRange);
+    free(pointsInDist);
 #endif 
   }
 
@@ -444,7 +447,7 @@ class TreeNNFinder { //: public NNFinder<dim>
 
     Fr fr = Fr(uf, cid, nodes, rootIdx, cacheTbs, edges, distComputer, no_cache, C, eps); 
 #ifdef PERF_RANGE
-    fr.setCounter(distance_computed, pointsInRange);
+    fr.setCounter(distance_computed, pointsInRange, pointsInDist);
 #endif  
     // point<dim> pMin1, pMax1; 
     // tie(pMin1, pMax1) = fr.getBox(getNode(cid), minD+eps);
@@ -619,13 +622,15 @@ class TreeNNFinder { //: public NNFinder<dim>
 #ifdef PERF_RANGE
   long total_distance_computed =sequence::plusReduce(distance_computed, ELTPERCACHELINE * getWorkers());
   long total_points_in_range=sequence::plusReduce(pointsInRange, ELTPERCACHELINE * getWorkers());
+  long total_points_in_dist=sequence::plusReduce(pointsInDist, ELTPERCACHELINE * getWorkers());
 
   cout << "distance-computed: " << total_distance_computed << endl;
   cout << "points-in-range: " << total_points_in_range << endl;
+  cout << "points-in-dist: " << total_points_in_dist << endl;
   cout << "range-saved: " << (long)chainNum*chainNum -  total_points_in_range << endl;
   cout << "cache-saved: " << total_points_in_range - total_distance_computed << endl;
 
-  for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;}
+  for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;pointsInDist[i]=0;}
 #endif  
   }
 
