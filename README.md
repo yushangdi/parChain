@@ -119,4 +119,3 @@ The runtime/memory experiment result of fastprotein runs the following. The resu
 ```bash
 ./clink_exp.sh
 ```
-s
