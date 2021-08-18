@@ -94,7 +94,7 @@ class TreeNNFinder { //: public NNFinder<dim>
 #ifdef PERF_RANGE
   long *distance_computed;
   long *pointsInRange;
-  long *pointsInDist;
+  unsigned long long *pointsInDist;
   // long max_max_cache_used_allrounds=0;
   // long max_avg_cache_used_allrounds = 0;
   // long times_cache_full;
@@ -163,7 +163,7 @@ class TreeNNFinder { //: public NNFinder<dim>
   cout << ELTPERCACHELINE * getWorkers() << endl;
   distance_computed = newA(long, ELTPERCACHELINE * getWorkers());
   pointsInRange = newA(long, ELTPERCACHELINE * getWorkers());
-  pointsInDist = newA(long, ELTPERCACHELINE * getWorkers());
+  pointsInDist = newA(unsigned long long, ELTPERCACHELINE * getWorkers());
   for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;pointsInDist[i]=0;}
 #endif  
 
@@ -268,10 +268,18 @@ class TreeNNFinder { //: public NNFinder<dim>
   }
 
   inline double getDistNaive(nodeT *inode,  nodeT *jnode, double lb = -1, double ub = numeric_limits<double>::max(), bool par = true){
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=(unsigned long long)(inode->size()) * (unsigned long long)(jnode->size());
+#endif
     return distComputer->getDistNaive(inode, jnode, lb, ub, par);
   }
 
   inline double getDistNaive(intT i, intT j, double lb = -1, double ub = numeric_limits<double>::max(), bool par = true){
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=(unsigned long long)(getNode(i)->size()) * (unsigned long long)(getNode(j)->size());
+#endif 
     return distComputer->getDistNaive(i, j, lb, ub, par);
   }
 
@@ -622,7 +630,7 @@ class TreeNNFinder { //: public NNFinder<dim>
 #ifdef PERF_RANGE
   long total_distance_computed =sequence::plusReduce(distance_computed, ELTPERCACHELINE * getWorkers());
   long total_points_in_range=sequence::plusReduce(pointsInRange, ELTPERCACHELINE * getWorkers());
-  long total_points_in_dist=sequence::plusReduce(pointsInDist, ELTPERCACHELINE * getWorkers());
+  unsigned long long total_points_in_dist=sequence::plusReduce(pointsInDist, ELTPERCACHELINE * getWorkers());
 
   cout << "distance-computed: " << total_distance_computed << endl;
   cout << "points-in-range: " << total_points_in_range << endl;
@@ -639,6 +647,9 @@ class TreeNNFinder { //: public NNFinder<dim>
   inline void initChain(TreeChainInfo<dim> *info){
     typedef FINDNN::AllPtsNN<dim, kdnodeT> F;
     F *f = new F(edges, eps);
+#ifdef PERF_RANGE
+    f->setCounter(distance_computed, pointsInRange, pointsInDist);
+#endif 
     FINDNNP::dualtree<kdnodeT, F>(kdtree->root, kdtree->root, f, false);
     parallel_for(intT i=0; i<n; ++i) {
       info->updateChain(edges[i].first, edges[i].second, edges[i].getW());
@@ -820,10 +831,6 @@ inline void chain_linkage(TF *finder, timer t1){
       finder->checkCache();
       if(print) UTIL::PrintSubtimer("check-cache", t1.next());
 #endif
-#ifdef PERF_RANGE
-    finder->report_perf_range(info->chainNum);
-    t1.next();
-#endif
   // cout << " ----" << endl;
   // cout << finder->edges[41705].first << " " << finder->edges[41705].second << " "  << finder->edges[41705].getW() << endl;
 //  UTIL::printTuple(finder->getDist(11791, 1470));
@@ -853,9 +860,12 @@ inline void chain_linkage(TF *finder, timer t1){
     finder->distComputer->update(round, finder);
     info->next(finder);
     chainNum = info->chainNum;
-
 #ifdef VERBOSE
 	if(print) UTIL::PrintSubtimer("update-clusters", t1.next());
+#endif
+#ifdef PERF_RANGE
+    finder->report_perf_range(info->chainNum);
+    t1.next();
 #endif
   t1.next();
   }

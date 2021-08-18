@@ -71,6 +71,9 @@ if __name__ == "__main__":
 			main_vector(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "ward", "euclidean", drop)
 			main_vector_nnchain(dataset, "average", "sqeuclidean", drop)
+			main_generic(dataset, 'complete')
+			main_generic(dataset, "average")
+			main_generic(dataset, "average", "sqeuclidean")
 		elif method == "generic-all":
 			main_generic(dataset, 'complete')
 			main_vector(dataset, "ward")

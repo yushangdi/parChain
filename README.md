@@ -16,7 +16,7 @@ Each folder contains an implementation that we tested.
 Our ParChain algorithms for complete linkage with Euclidean distance, Ward's linkage with Euclidean distance, average linkage with Euclidean distance and average linkage with squared Euclidean distance .
 
 `multi-threaded-NN-chain`
-[Jeon et al's](https://ieeexplore.ieee.org/document/6893001) parallel nearest-neighbor chain implementation. It supports average linkage with Euclidean distance. 
+[Jeon et al.'s](https://ieeexplore.ieee.org/document/6893001) parallel nearest-neighbor chain implementation. It supports average linkage with Euclidean distance. 
 
 `fast_protein_cluster`
 [fast_protein_cluster](https://pubmed.ncbi.nlm.nih.gov/24532722/) parallel HAC implementation that works for complete and average linkage with Euclidean distance metric.
@@ -26,6 +26,9 @@ The [original code](https://github.com/lhhunghimself/fast_protein_cluster) works
 [fastcluster](http://danifold.net/fastcluster.html?section=1) is a sequential HAC implementation in C++ with python interface. 
 
 `scipy` and `sklearn` can be installed from python.
+
+`althaus`
+[Althaus et al.'s](https://link.springer.com/chapter/10.1007/978-3-319-07953-0_2) is a parallel HAC algorithm for complete linkage. We implemented it in C++.
 
 ## Installation
 
@@ -51,7 +54,7 @@ For the memory tests, `valgrind &gt;= 3.17.0` is required. You can download [her
 
 To run our scripts, the datasets need to be in the "datasets" folder under this folder. 
 
-### PC and PC-matrix
+### PC, PC-m, and PC-mr
 
 The runtime/memory experiment result of our algorithm runs the following. The result files will be in `outputs/outputs_{method}` and `outputs/memo_outputs`.
 You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run. 
@@ -73,6 +76,17 @@ You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run.
 ./pc_matrix_exp.sh avgsq 
 
 ./pc_matrix_exp_memo.sh
+```
+
+ The runtime/memory experiment result of our algorithm runs the following. The result files will be in `outputs/outputs_matrix_range` and `outputs/memo_outputs`.
+You can modify `datasets` and `dims` in pc_exp.sh for the datasets to run. 
+```bash
+./pc_matrix_range_exp.sh complete
+./pc_matrix_range_exp.sh ward
+./pc_matrix_range_exp.sh avg
+./pc_matrix_range_exp.sh avgsq 
+
+./pc_matrix_exp_range_memo.sh
 ```
  
 
@@ -98,4 +112,10 @@ Scipy and Sklearn and be installed using `pip`. The fastcluster submodule in thi
 ```bash
 ./python_libs_exp.sh
 ./python_libs_exp_memo.sh
+```
+
+### Althaus
+The runtime/memory experiment result of fastprotein runs the following. The result files will be in `outputs/outputs_clink` and `outputs/memo_outputs`.
+```bash
+./clink_exp.sh
 ```

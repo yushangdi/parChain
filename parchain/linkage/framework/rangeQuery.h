@@ -53,7 +53,7 @@ namespace FINDNN {
         long *distance_computed;
         long *pointsInRange;
         // long *pointsInDist; cannot get cluster size
-        void setCounter(long *t_distance_computed, long *t_pointsInRange, long *t_pointsInDist){
+        void setCounter(long *t_distance_computed, long *t_pointsInRange, unsigned long long *t_pointsInDist){
             distance_computed = t_distance_computed;
             pointsInRange = t_pointsInRange;
             // pointsInDist = t_pointsInDist;
@@ -168,8 +168,8 @@ namespace FINDNN {
 #ifdef PERF_RANGE
         long *distance_computed;
         long *pointsInRange;
-        long *pointsInDist;
-        void setCounter(long *t_distance_computed, long *t_pointsInRange, long *t_pointsInDist){
+        unsigned long long *pointsInDist;
+        void setCounter(long *t_distance_computed, long *t_pointsInRange, unsigned long long *t_pointsInDist){
             distance_computed = t_distance_computed;
             pointsInRange = t_pointsInRange;
             pointsInDist = t_pointsInDist;
@@ -276,7 +276,7 @@ namespace FINDNN {
                 double dist = distComputer->getDistNaive(cid,Rid, -1, e.second, false); //, false
 #ifdef PERF_RANGE
             distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
-            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=qnode->size() * getNode(Rid)->size();
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=(unsigned long long)(qnode->size()) * (unsigned long long)(getNode(Rid)->size());
 #endif
                 if(!no_cache) insert(cid, Rid, dist); 
                 if(e.second - dist > eps){ e = make_pair(Rid, dist);}  
@@ -354,7 +354,7 @@ namespace FINDNN {
 #ifdef PERF_RANGE
         long *distance_computed;
         long *pointsInRange;
-        long *pointsInDist;
+        unsigned long long *pointsInDist;
 #endif
 
         RangeQueryCenterF(UnionFind::ParUF<intT> *t_uf, intT t_cid, 
@@ -375,7 +375,7 @@ namespace FINDNN {
         }
 
 #ifdef PERF_RANGE
-        void setCounter(long *t_distance_computed, long *t_pointsInRange, long *t_pointsInDist){
+        void setCounter(long *t_distance_computed, long *t_pointsInRange, unsigned long long *t_pointsInDist){
             distance_computed = t_distance_computed;
             pointsInRange = t_pointsInRange;
             pointsInDist = t_pointsInDist;
@@ -484,7 +484,7 @@ namespace FINDNN {
             double dist;
 #ifdef PERF_RANGE
             distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
-            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=qnode->size() * getNode(Rid)->size();
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=(unsigned long long)(qnode->size()) * (unsigned long long)(getNode(Rid)->size());
 #endif
             if(distComputer->id_only) {dist = distComputer->getDistNaive(cid, Rid);}
             else {dist = distComputer->getDistNaive(qnode, getNode(Rid));}
