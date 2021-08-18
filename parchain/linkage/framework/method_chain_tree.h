@@ -1,5 +1,5 @@
-#ifndef METHOD_CHAIN_TREE_AVE_H
-#define METHOD_CHAIN_TREE_AVE_H
+#ifndef METHOD_CHAIN_TREE_H
+#define METHOD_CHAIN_TREE_H
 
 #include "sequence.h"
 #include "geometry.h"
@@ -13,6 +13,7 @@
 #include "serialHash.h"
 
 #include "kdTree2.h"
+#include "dendrogram.h"
 
 // #define TIMING2
 #define ALLOCDOUBLE
@@ -83,40 +84,22 @@ class TreeNNFinder { //: public NNFinder<dim>
   intT MAX_CACHE_TABLE_SIZE = 128;
   // bool fullTableFlag = false;
 
-#ifdef PERF_RANGE
-  double range_time = 0;
-  double find_nns_time = 0;
-  // intT cand_num = 0;
-  double max_round_time = 0;
-  double max_range_time = 0;
-  double max_nns_time = 0;
-
-inline void report_perf_range(intT round){
-    if(round > 1 && (round < 5 || round % PRINT_FREQ == 0)){
-      UTIL::PrintFunctionItem("PERF_RANGE", "nns", find_nns_time);
-      UTIL::PrintFunctionItem("PERF_RANGE", "init_tree_time", init_tree_time);
-      // UTIL::PrintFunctionItem("PERF_RANGE", "tree_bb_time", tree_bb_time);
-      UTIL::PrintFunctionItem("PERF_RANGE", "range+nnc", range_time);
-      UTIL::PrintFunctionItem("PERF_RANGE", "cand_num", cand_num);
-  }
-}
-
-inline void reset_perf_range(){
-    range_time = 0;
-    find_nns_time = 0;
-    init_tree_time =  0;
-    // tree_bb_time = 0;
-    cand_num = 0;
-  }
-#endif
 
 #ifdef BENCHCACHE
-  intT alloc_cache=0;
+  // intT alloc_cache=0;
   intT used_cache=0;
   // intT *allocCacheCounters;
   intT *usedCacheCounters;
 #endif
-  
+#ifdef PERF_RANGE
+  long *distance_computed;
+  long *pointsInRange;
+  unsigned long long *pointsInDist;
+  // long max_max_cache_used_allrounds=0;
+  // long max_avg_cache_used_allrounds = 0;
+  // long times_cache_full;
+#endif  
+
   //TODO: batch allocate cache table space
   //TODO: free cache table when merges
   TreeNNFinder(intT t_n, point<dim>* t_P, UnionFind::ParUF<intT> *t_uf, 
@@ -170,11 +153,19 @@ inline void reset_perf_range(){
     // allocCacheCounters=newA(intT,n);
     // parallel_for(intT i=0; i<n; ++i) {allocCacheCounters[i]=min(MAX_CACHE_TABLE_SIZE_INIT, C);}
     usedCacheCounters=newA(intT,n);
-    // parallel_for(intT i=0; i<n; ++i) {usedCacheCounters[i]=0;}
+    parallel_for(intT i=0; i<n; ++i) {usedCacheCounters[i]=0;}
     cout << "alloc cache: " << n*2*hashTableSize << endl;
     cout << "used cache: " << 0 << endl;
 #endif
     } // end of if ! no cache
+
+#ifdef PERF_RANGE
+  cout << ELTPERCACHELINE * getWorkers() << endl;
+  distance_computed = newA(long, ELTPERCACHELINE * getWorkers());
+  pointsInRange = newA(long, ELTPERCACHELINE * getWorkers());
+  pointsInDist = newA(unsigned long long, ELTPERCACHELINE * getWorkers());
+  for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;pointsInDist[i]=0;}
+#endif  
 
     nodeIdx.store(n); // have used n nodes
     kdtree = new treeT(PP, n);
@@ -198,6 +189,9 @@ inline void reset_perf_range(){
       free(TA);
 #endif
       free(cacheTbs);
+#ifdef BENCHCACHE
+    free(usedCacheCounters);
+#endif
     }
     free(PP);
     free(flag);
@@ -207,9 +201,11 @@ inline void reset_perf_range(){
     free(edges);
     free(rootIdx);
     delete distComputer;
-#ifdef BENCHCACHE
-    free(usedCacheCounters);
-#endif
+#ifdef PERF_RANGE
+    free(distance_computed);
+    free(pointsInRange);
+    free(pointsInDist);
+#endif 
   }
 
   inline intT cid(nodeT* node){ return node->cId;}
@@ -272,10 +268,18 @@ inline void reset_perf_range(){
   }
 
   inline double getDistNaive(nodeT *inode,  nodeT *jnode, double lb = -1, double ub = numeric_limits<double>::max(), bool par = true){
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=(unsigned long long)(inode->size()) * (unsigned long long)(jnode->size());
+#endif
     return distComputer->getDistNaive(inode, jnode, lb, ub, par);
   }
 
   inline double getDistNaive(intT i, intT j, double lb = -1, double ub = numeric_limits<double>::max(), bool par = true){
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=(unsigned long long)(getNode(i)->size()) * (unsigned long long)(getNode(j)->size());
+#endif 
     return distComputer->getDistNaive(i, j, lb, ub, par);
   }
 
@@ -450,6 +454,9 @@ inline void reset_perf_range(){
     }
 
     Fr fr = Fr(uf, cid, nodes, rootIdx, cacheTbs, edges, distComputer, no_cache, C, eps); 
+#ifdef PERF_RANGE
+    fr.setCounter(distance_computed, pointsInRange, pointsInDist);
+#endif  
     // point<dim> pMin1, pMax1; 
     // tie(pMin1, pMax1) = fr.getBox(getNode(cid), minD+eps);
     // FINDNN::NNcandidate<point<dim>, Fr, kdnodeT>(kdtree->root, pMin1, pMax1, &fr);
@@ -568,21 +575,25 @@ inline void reset_perf_range(){
     cacheTbs[idx2] = nullptr;
   }
 
-  inline void checkCache(_seq<intT> merged){
+  inline void checkCache(){
 #ifdef BENCHCACHE
+      if(no_cache) return;
       parallel_for(intT i = 0; i < C; ++i){ //
         intT cid = activeClusters[i];
-        if(cid == uf->find(cid)){
           usedCacheCounters[i] = cacheTbs[idx(cid)]->count();
-          // allocCacheCounters[i] = cacheTbs[idx(cid)]->m;
-        }else{
-          usedCacheCounters[i] = 0;
-        }
       }
       used_cache=sequence::plusReduce(usedCacheCounters, C);
-      // alloc_cache=sequence::plusReduce(allocCacheCounters, C);
-      cout << "used cache: " << used_cache << endl;
-      // cout << "alloc cache: " << alloc_cache << endl;
+      long min_cache=sequence::maxIndex(usedCacheCounters, C, less<int>());
+      long max_cache=sequence::maxIndex(usedCacheCounters, C, greater<int>());
+
+      cout << "used-cache: " << used_cache << endl;
+      cout << "avg-used-cache: " << 1.0*used_cache/C << endl;
+      cout << "max-used-cache: " << usedCacheCounters[max_cache] << endl;
+      cout << "min-used-cache: " << usedCacheCounters[min_cache] << endl;
+
+      parallel_for(intT i = 0; i < C; ++i){ //
+        usedCacheCounters[i] = 0;
+      }
 
 #endif   
   }
@@ -615,11 +626,30 @@ inline void reset_perf_range(){
 #endif
   }
 
+  void report_perf_range(intT chainNum){
+#ifdef PERF_RANGE
+  long total_distance_computed =sequence::plusReduce(distance_computed, ELTPERCACHELINE * getWorkers());
+  long total_points_in_range=sequence::plusReduce(pointsInRange, ELTPERCACHELINE * getWorkers());
+  unsigned long long total_points_in_dist=sequence::plusReduce(pointsInDist, ELTPERCACHELINE * getWorkers());
+
+  cout << "distance-computed: " << total_distance_computed << endl;
+  cout << "points-in-range: " << total_points_in_range << endl;
+  cout << "points-in-dist: " << total_points_in_dist << endl;
+  cout << "range-saved: " << (long)chainNum*chainNum -  total_points_in_range << endl;
+  cout << "cache-saved: " << total_points_in_range - total_distance_computed << endl;
+
+  for(intT i=0; i<ELTPERCACHELINE * getWorkers(); ++i) {distance_computed[i]=0;pointsInRange[i]=0;pointsInDist[i]=0;}
+#endif  
+  }
+
   // edges[i] stores the ith nn  of point i
   // initialize the chain in info
   inline void initChain(TreeChainInfo<dim> *info){
     typedef FINDNN::AllPtsNN<dim, kdnodeT> F;
     F *f = new F(edges, eps);
+#ifdef PERF_RANGE
+    f->setCounter(distance_computed, pointsInRange, pointsInDist);
+#endif 
     FINDNNP::dualtree<kdnodeT, F>(kdtree->root, kdtree->root, f, false);
     parallel_for(intT i=0; i<n; ++i) {
       info->updateChain(edges[i].first, edges[i].second, edges[i].getW());
@@ -731,10 +761,6 @@ inline void link_terminal_nodes(UnionFind::ParUF<intT> *uf, TF *finder, TreeChai
 #ifdef TIMING2
 	if(LINKAGE_DOPRINT(round)){ UTIL::PrintSubtimer(":::update dist", t1.next());}
 #endif
-#ifdef BENCHCACHE
-      finder->checkCache(merged);
-      t1.next();
-#endif
 
 #ifndef ALLOCDOUBLE
   // delete old hashtables
@@ -801,6 +827,10 @@ inline void chain_linkage(TF *finder, timer t1){
 #endif
   }
 
+#ifdef BENCHCACHE
+      finder->checkCache();
+      if(print) UTIL::PrintSubtimer("check-cache", t1.next());
+#endif
   // cout << " ----" << endl;
   // cout << finder->edges[41705].first << " " << finder->edges[41705].second << " "  << finder->edges[41705].getW() << endl;
 //  UTIL::printTuple(finder->getDist(11791, 1470));
@@ -820,10 +850,7 @@ inline void chain_linkage(TF *finder, timer t1){
 
 //    file_obj << round << "========" << endl;
 // } //end true
-#ifdef PERF_RANGE
-    finder->report_perf_range(round);
-    finder->reset_perf_range();
-#endif
+
     link_terminal_nodes<dim, TF>(uf, finder, info, round, flags);
 #ifdef VERBOSE
 	if(print) UTIL::PrintSubtimer("link-update", t1.next());
@@ -833,9 +860,12 @@ inline void chain_linkage(TF *finder, timer t1){
     finder->distComputer->update(round, finder);
     info->next(finder);
     chainNum = info->chainNum;
-
 #ifdef VERBOSE
 	if(print) UTIL::PrintSubtimer("update-clusters", t1.next());
+#endif
+#ifdef PERF_RANGE
+    finder->report_perf_range(info->chainNum);
+    t1.next();
 #endif
   t1.next();
   }
@@ -843,6 +873,133 @@ inline void chain_linkage(TF *finder, timer t1){
   delete info;
   free(flags);
   finder->distComputer->postProcess(finder);
+}
+
+
+template<int dim, class pointT>
+inline void completeLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "complete Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>; // point array
+  using distT = distComplete3<dim, pointT, nodeT, nodeInfo>; //kdtree
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>;
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCountF1<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::MarkClusterId<dim, Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void wardLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "ward Linkage of " << n << ", dim " << dim << " points" << endl;
+  using nodeInfo = FINDNN::WLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo3<dim, pointT *>;
+  using MCenter = FINDNN::MarkKdTreeCenters<dim, pointT, nodeInfo>;
+  using distT = distWard1<dim, pointT, nodeT, nodeInfo, MCenter>;
+  using boxT = FINDNN::queryBallWard<dim, nodeT>;
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void avgLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "average Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+  using distT = distAverage5<dim, pointT, nodeT>; // consecutive point array
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>;
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "average Linkage of " << n << ", dim " << dim << " points, sqeuclidean" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+  using distT = distAverage4<dim, pointT, nodeT, nodeInfo>; // consecutive point array
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>; //still use simple, distT will  postprocess
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
+}
+
+template<int dim, class pointT>
+inline void dummyCubicLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+  timer t1;
+  t1.start();
+  cout << "dummy Cubic Linkage of " << n << ", dim " << dim << " points" << endl; 
+  using nodeInfo = FINDNN::CLinkNodeInfo; // for kdtree
+  using nodeT = FINDNN::LinkNodeInfo1<dim, pointT *>;
+  using distT = distCubicDummy<dim, pointT, nodeT>; // consecutive point array
+  using boxT = FINDNN::queryBallSimple<dim, nodeT>;
+  bool no_cache = cache_size == 0;
+  using Fr = FINDNN::RangeQueryCenterF<dim, pointT, nodeInfo, distT, boxT>;
+  using M = FINDNN::DummyMarker<Fr>;
+
+  using FinderT = TreeNNFinder<dim, distT, Fr, M>;
+  distT::printName();
+  FinderT *finder = new FinderT(n, P, uf, no_cache, eps, naive_thresh, cache_size); // if true, do not keep cache
+  chain_linkage<dim, FinderT>(finder, t1);
+  timer t2;t2.start();
+  dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
+  UTIL::PrintSubtimer("format-dendro", t2.next());
+  free(dendro);
+  delete finder;
+  UTIL::PrintSubtimer("CLINK", t1.next());
 }
 
 }//end of namespace

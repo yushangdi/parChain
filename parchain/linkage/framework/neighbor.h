@@ -298,7 +298,18 @@ namespace FINDNN {
     struct AllPtsNN{
         LDS::EDGE *edges;
         LDS::edgeComparator2 EC2;
+#ifdef PERF_RANGE
+        long *distance_computed;
+        long *pointsInRange;
+        unsigned long long *pointsInDist;
 
+        void setCounter(long *t_distance_computed, long *t_pointsInRange, unsigned long long *t_pointsInDist){
+            distance_computed = t_distance_computed;
+            pointsInRange = t_pointsInRange;
+            pointsInDist = t_pointsInDist;
+
+        }
+#endif
         AllPtsNN(LDS::EDGE *ee, double eps){
             EC2 = LDS::edgeComparator2(eps);
             edges = ee;
@@ -317,6 +328,11 @@ namespace FINDNN {
         }
 
         inline void BaseCase(nodeT *Q, nodeT *R, intT i, intT j){
+#ifdef PERF_RANGE
+            distance_computed[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInRange[getWorkerId()*ELTPERCACHELINE]+=1;
+            pointsInDist[getWorkerId()*ELTPERCACHELINE]+=1;
+#endif
             intT ii = Q->items[i]->idx();
             intT jj = R->items[j]->idx();
             if (ii == jj) return;
@@ -488,7 +504,7 @@ namespace FINDNN {
         UnionFind::ParUF<intT> *uf;
         intT cid; // cid of query cluster
         LDS::edgeComparator2 EC2;
-        
+
         ~NNsingle(){
             delete e;
         }

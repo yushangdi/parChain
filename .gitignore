@@ -33,3 +33,7 @@
 
 outputs/*
 datasets/*
+greedyclink/*
+.vscode/
+althaus/clink
+datasets

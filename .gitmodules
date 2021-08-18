@@ -7,3 +7,6 @@
 [submodule "fastcluster"]
 	path = fastcluster
 	url = https://github.com/yushangdi/fastcluster
+[submodule "althaus/parlaylib"]
+	path = althaus/parlaylib
+	url = https://github.com/cmuparlay/parlaylib.git

@@ -20,7 +20,7 @@ if [[ "avg" != "$METHOD" ]]; then
   SUFFIX=""
 fi
 echo "Folder suffix=$SUFFIX (only for avg-2)"  
-echo "cache size=$CACHESIZE * 2 (only for avg-2)"  
+echo "cache size=$CACHESIZE * 2"  
 
 
 [ -d "outputs" ] || mkdir "outputs"
