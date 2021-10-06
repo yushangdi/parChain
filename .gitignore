@@ -37,3 +37,4 @@ greedyclink/*
 .vscode/
 althaus/clink
 datasets
+cpython/*
