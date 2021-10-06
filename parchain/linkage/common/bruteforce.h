@@ -9,24 +9,19 @@
 #include "kdTree2.h"
 #include "unionfind.h"
 
-// 10000 similar runtime
 #define LINKAGE_AVE_BRUTE_THRESH 100000
-
-#define BruteStrategy4
 
 // Bruteforce implementations
 namespace FINDNN {
 
-#if defined(BruteStrategy4)
     //find the average　distance between P1 and P2, return random pair of points
-    //TODO: tune
     template<class pointT, class ARR>
     inline pair<pair<intT, intT>, double> bruteForceAverage(ARR P1, ARR P2, intT n1, intT n2, bool div = true){
         pair<intT, intT> result = make_pair(LDS::getPointId(P1[0]),LDS::getPointId(P2[0]));
         double total_d = 0;
         long total_n = (long)n1 * (long)n2;
         // intT eltsPerCacheLine = 128 /sizeof(double);
-        if(total_n < LINKAGE_AVE_BRUTE_THRESH){ //threshold?
+        if(total_n < LINKAGE_AVE_BRUTE_THRESH){ 
             for(intT i=0; i< n1; ++i){
                 for(intT j=0;j<n2; ++j){
                     total_d +=  LDS::pointDist<pointT>(P1[i], P2[j]);
@@ -58,117 +53,6 @@ namespace FINDNN {
         if(div) return make_pair(result, total_d/total_n);
         return make_pair(result, total_d);
     }
-
-  // template <class OT, class intT, class F, class G>
-  // OT reduce2(intT s, intT e, F f, G g) {
-  //   timer t1; t1.start();
-  //   intT nBlocks1 =  getWorkers() * 32;
-  //   intT BLOCKSIZE1 = max((intT)1,(e-s)/nBlocks1);
-  //   intT l = nblocks(e-s, BLOCKSIZE1);
-  //   if (l <= 1) return reduceSerial<OT>(s, e, f , g);
-  //   OT *Sums = newA(OT,l);
-  //   // blocked_for (i, s, e, BLOCKSIZE1,
-  //   //  Sums[i] = reduceSerial<OT>(s, e, f, g););
-  //   cout << "reduce part 0: " << t1.next() << endl;
-  //   cout << l << endl;
-  //   parallel_for_1 (intT _i = 0; _i < l; _i++) {   
-  //     intT ss = s + _i * BLOCKSIZE1;      
-  //     intT ee = min(ss + BLOCKSIZE1, e);      
-  //     Sums[_i] = reduceSerial<OT>(ss, ee, f, g);        
-  //   }     
-  //   cout << "reduce part 1: " << t1.next() << endl;
-  //   OT r = reduce<OT>((intT) 0, l, f, getA<OT,intT>(Sums));
-  //   free(Sums);
-  //   return r;
-  // }
-
-
-#elif defined(BruteStrategy5)
-  template <class ARR, class pointT>
-  struct getABruteAve {
-    ARR P1;
-    ARR P2;
-    // intT n1;
-    long n2;
-    // long shift;
-    // long mask;
-    getABruteAve(ARR PP1, ARR PP2, long nn2) : P1(PP1), P2(PP2), n2(nn2) {
-        // shift = log2(n2);
-        // mask = n2-1;
-    }
-    double operator() (long k) {
-        long i = k/n2;
-        long j = k - n2*i;
-        // long i = k >> shift;
-        // long j = k & mask;
-        return LDS::pointDist<pointT>(P1[i], P2[j]);
-    }
-  };
-
-
-    //find the average　distance between P1 and P2, return random pair of points
-    template<class pointT, class ARR>
-    inline pair<pair<intT, intT>, double> bruteForceAverage(ARR P1, ARR P2, intT n1, intT n2, bool div = true){
-        pair<intT, intT> result = make_pair(LDS::getPointId(P1[0]),LDS::getPointId(P2[0]));
-        double total_d = 0;
-        long total_n = (long)n1 * (long)n2;
-        // intT eltsPerCacheLine = 128 /sizeof(double);
-        if(total_n < LINKAGE_AVE_BRUTE_THRESH){ //threshold?
-            for(intT i=0; i< n1; ++i){
-                for(intT j=0;j<n2; ++j){
-                    total_d +=  LDS::pointDist<pointT>(P1[i], P2[j]);
-                }
-            }
-        }else{
-
-            total_d = sequence::reduce<double, long, utils::addF<double>, getABruteAve<ARR, pointT>>(
-                (long)0, total_n, utils::addF<double>(),  getABruteAve<ARR, pointT>(P1, P2, (long)n2));
-
-        }
-
-        if(div) return make_pair(result, total_d/total_n);
-        return make_pair(result, total_d);
-    }
-
-
-#elif defined(BruteStrategy3)
-    template<class pointT, class ARR>
-    inline pair<pair<intT, intT>, double> bruteForceAverage(ARR P1, ARR P2, intT n1, intT n2, bool div = true){
-        pair<intT, intT> result = make_pair(LDS::getPointId(P1[0]),LDS::getPointId(P2[0]));
-        double total_d = 0;
-        long total_n = (long)n1 * (long)n2;
-        intT eltsPerCacheLine = 128 /sizeof(double);
-        if(total_n < LINKAGE_AVE_BRUTE_THRESH){ //threshold?
-            for(intT i=0; i< n1; ++i){
-                for(intT j=0;j<n2; ++j){
-                    total_d += LDS::pointDist<pointT>(P1[i], P2[j]);
-                }
-            }
-        }else{
-            // long BLOCKSIZE = 2048;
-            long nBlocks =  getWorkers();
-            // long BLOCKSIZE = total_n/nBlocks;
-            // if(total_n < nBlocks*BLOCKSIZE) nBlocks += 1;
-            double *arr = newA(double, nBlocks * eltsPerCacheLine);
-            for(intT i=0; i< nBlocks; ++i){
-                arr[i*eltsPerCacheLine] = 0;
-            }
-            parallel_for(intT i=0; i< n1; ++i){
-                parallel_for(intT j=0; j< n2; ++j){
-                    arr[getWorkerId() * eltsPerCacheLine] += LDS::pointDist<pointT>(P1[i], P2[j]);
-                }
-            }
-            for(intT i = 0; i < nBlocks; ++i){
-                total_d += arr[i * eltsPerCacheLine];
-            }
-            // total_d = sequence::plusReduce(arr, nBlocks);
-            free(arr);
-        }
-
-        if(div) return make_pair(result, total_d/total_n);
-        return make_pair(result, total_d);
-    }
-#endif
 
     template<int dim, class pointT, class nodeInfo>
     inline pair<pair<intT, intT>, double> bruteForceAverage(struct kdTree<dim, pointT, nodeInfo> *t1, struct kdTree<dim, pointT, nodeInfo> *t2, bool div = true){
@@ -217,10 +101,6 @@ namespace FINDNN {
                 result = make_pair(i,j);
                 maxd = d;
             }
-            // else if(d==maxd && j<result.second){
-            //     result = make_pair(i,j);
-            //     maxd = d;
-            // }
             }
         }
         return make_pair(result, maxd);
@@ -238,10 +118,6 @@ namespace FINDNN {
                 result = make_pair(P1[i]->idx(),P2[j]->idx());
                 maxd = d;
             }
-            // else if(d==maxd && P2[j]->idx()<result.second){
-            //     result = make_pair(P1[i]->idx(),P2[j]->idx());
-            //     maxd = d;
-            // }
             }
         }
         return make_pair(result, maxd);

@@ -107,18 +107,12 @@ namespace FINDNN {
         inline void BaseCaseSerial(nodeT *Q, nodeT *R, intT i, intT j){
             double qrdist = (Q->items[i])->pointDist(*(R->items[j]));
             if(qrdist > ub){
-                // utils::writeMin(e, LDS::EDGE(-1,-1,numeric_limits<double>::max()), EC);
                 e->update(-1,-1,numeric_limits<double>::max());
             }
-            // else{
-            //     utils::writeMin(e, LDS::EDGE(Q->items[i]->idx(),R->items[j]->idx(),qrdist), EC);
-            // }
+
             if(qrdist > e->getW()){
                 e->update(Q->items[i]->idx(),R->items[j]->idx(),qrdist);
             }
-            // if(qrdist == e->getW() && uf->find(R->items[j]->idx()) < uf->find(e->second)){
-            //     e->update(Q->items[i]->idx(),R->items[j]->idx(),qrdist);
-            // }
         }
 
         inline double NodeDistForOrder(nodeT *Q, nodeT *R){
@@ -337,25 +331,8 @@ namespace FINDNN {
             intT jj = R->items[j]->idx();
             if (ii == jj) return;
             double qrdist = (Q->items[i])->pointDist(*(R->items[j]));
-            // if(ii == 41705){
-            //     cout << ii << " " << jj << " " << qrdist << endl;
-            // }
             utils::writeMin(&edges[ii], LDS::EDGE(ii,jj,qrdist), EC2);
         }
-
-        // inline void BaseCaseSerial(nodeT *Q, nodeT *R, intT i, intT j){
-        //     intT ii = Q->items[i]->idx();
-        //     intT jj = R->items[j]->idx();
-        //     if (ii == jj) return;
-        //     double qrdist = (Q->items[i])->pointDist(*(R->items[j]));
-        //     // utils::writeMin(&edges[ii], LDS::EDGE(ii,jj,qrdist), EC2);
-        //     if(qrdist < edges[ii].getW()){
-        //         edges[ii].update(ii,jj,qrdist);
-        //     }
-        //     if(qrdist == edges[ii].getW() && jj < edges[ii].second){
-        //         edges[ii].update(ii, jj,qrdist);
-        //     }
-        // }
 
         inline double NodeDistForOrder(nodeT *Q, nodeT *R){
             return node_distance<dim, nodeT>(Q, R);
@@ -399,7 +376,6 @@ namespace FINDNN {
     template<int dim, class nodeT, class distF>
     struct AllPtsNNMetric{
         LDS::EDGE *edges;
-        // intT *CMap;
         UnionFind::ParUF<intT> *uf;
         distF *distComputer;
         LDS::edgeComparator2 EC2;
@@ -463,16 +439,8 @@ namespace FINDNN {
 
         void BasePost(nodeT *Q, nodeT *R){
             for(intT i=0; i<Q->size(); ++i){
-                //early cut dqR
-                // intT ii = Q->items[i]->idx();
-                // intT cid1 = uf->find(ii);
-                // if(cid1 == R->nInfo.getCId()){continue;}
-                // if(distComputer->skipBaseCase(edges[cid1].getW(), Q->items[i])) continue;
-                // if(node_distance<dim, nodeT, typename nodeT::objT>(Q->items[i], R) > edges[cid1].getW()){continue;}
                 
                 for(intT j=0;j<R->size() ; ++j){
-                    // intT jj = R->items[j]->idx();
-                    // BaseCase(Q,R,ii,jj, cid1);
                     BaseCase(Q,R,i,j);
                 }
             }
@@ -540,7 +508,6 @@ namespace FINDNN {
         inline void BaseCaseSerial(nodeT *Q, nodeT *R, intT i, intT j){
             if(uf->find(R->items[j]->idx()) == cid) return;
             double qrdist = (Q->items[i])->pointDist(*(R->items[j]));
-            // utils::writeMin(e, LDS::EDGE(Q->items[i]->idx(),R->items[j]->idx(),qrdist), EC2);
             if(qrdist < e->getW()){
                 e->update(Q->items[i]->idx(),R->items[j]->idx(),qrdist);
             }
@@ -584,7 +551,6 @@ namespace FINDNN {
 
         inline bool isLeaf(nodeT *Q){
             return Q->size() < 500; //todo: tune
-            // return Q->size() == 1;
         }
 
         inline tuple<double, bool> Score(nodeT *Q, nodeT *R, bool check = true){
@@ -879,9 +845,6 @@ namespace FINDNN {
             }
             Q->nInfo.resetUB(); 
             (Q->nInfo).updateUB(max((Q->left->nInfo).getUB(), (Q->right->nInfo).getUB()));
-            // if (Q->nInfo.getCId() < 0){
-            //     (Q->nInfo).updateUB(Q->Diameter());
-            // }
             distComputer->updateUB(Q);
         }
 
@@ -899,9 +862,6 @@ namespace FINDNN {
                 Q->nInfo.setCId(id);
             }
             Q->nInfo.resetUB(); 
-            // if ( Q->nInfo.getCId() < 0){
-            //     (Q->nInfo).updateUB(Q->Diameter());
-            // }
             distComputer->updateUB(Q);
         }
 
@@ -921,85 +881,7 @@ namespace FINDNN {
     };
 
 
-    // // mark cluster id and others
-    // template<int dim, class Fr>
-    // struct MarkKdTree1{
-    //     typedef typename Fr::nodeInfo nodeInfoT;
-    //     typedef typename Fr::nodeT nodeT;
-    //     typedef typename nodeInfoT::infoT infoT;
-    //     typedef typename Fr::kdnodeT kdnodeT;
-
-    //     // bool isTopDown;
-    //     UnionFind::ParUF<intT> *uf;
-    //     nodeT *nodes;
-    //     intT *rootIdx;
-    //     infoT initVal = nodeInfoT().initInfoVal();
-
-    //     MarkKdTree1(UnionFind::ParUF<intT> *t_uf, nodeT *t_nodes, intT *t_rootIdx):uf(t_uf){
-    //         nodes = t_nodes;
-    //         rootIdx = t_rootIdx;
-    //         // initVal = nodeInfoT().initInfoVal();
-    //     }
-    //     MarkKdTree1(){
-    //     }
-
-    //     inline bool doMark(intT C, intT round){ return true;}
-
-    //     inline nodeT *getNode(intT cid){return nodes+rootIdx[cid];}
-
-    //     inline bool isTopDown(infoT info){ return get<0>(info) != -1;}
-
-    //     inline void TopDownNode(kdnodeT *Q, infoT info){
-    //         if(!isTopDown(info)) return;
-    //         Q->nInfo.setInfo(info);
-    //     }
-
-    //     inline void BottomUpNode(kdnodeT *Q, infoT info){
-    //         if(isTopDown(info)) return;
-    //         intT cidl = Q->left->nInfo.getCId();
-    //         if(cidl != -1){
-    //             intT cidr = Q->right->nInfo.getCId();
-    //             if(cidl == cidr)Q->nInfo.setCId(cidl);
-    //         }
-    //         Q->nInfo.setMinN(min(Q->left->nInfo.getMinN(), Q->right->nInfo.getMinN()));
-    //     }
-
-    //     inline void BaseCase(kdnodeT *Q, infoT info){
-    //         if(isTopDown(info)){
-    //             Q->nInfo.setInfo(info);
-    //         }else{
-    //             intT id = uf->find(Q->items[0]->idx());
-    //             intT min_n = getNode(id)->n; 
-    //             for(intT i=1; i<Q->size(); ++i){
-    //                 intT id_temp = uf->find(Q->items[i]->idx());
-    //                 if(id != -1 && id_temp != id){
-    //                     id = -1;
-    //                 }else{
-    //                     min_n = min(min_n, getNode(id_temp)->n);  
-    //                 }      
-    //             }
-    //             Q->nInfo.setInfo(infoT(id, min_n));
-    //         }
-    //     }
-
-    //     inline infoT SwitchMode(kdnodeT *Q, infoT info){
-    //         if(isTopDown(info)) return info; // cid != -1
-    //         intT cid = Q->nInfo.getCId();
-    //         if(cid == -1) {
-    //             // get<0>(info) = -1;
-    //             return info;
-    //         };
-    //         get<0>(info) = uf->find(cid); 
-    //         return info;
-    //     }
-
-    //     inline bool Par(kdnodeT *Q){return Q->size() > 1000;}
-
-    //     inline bool Stop(kdnodeT *Q, infoT info){
-    //         return Q->nInfo.getInfo() == info;
-    //     }
-
-    // };
+  
     struct DummyMarkerCenters{
         DummyMarkerCenters(intT *t_sizes){
         }
@@ -1013,7 +895,6 @@ namespace FINDNN {
         typedef typename nodeInfo::infoT infoT;
         typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
 
-        // pointT *centers;
         intT *sizes;
         infoT initVal = nodeInfo().initInfoVal();
 
@@ -1024,7 +905,7 @@ namespace FINDNN {
 
         inline bool doMark(intT C, intT round){ return true;}
 
-        inline bool isTopDown(infoT info){return false;}//{ return get<0>(info) != -1;}
+        inline bool isTopDown(infoT info){return false;}
 
         inline void TopDownNode(kdnodeT *Q, infoT info){
             if(!isTopDown(info)) return;
@@ -1105,90 +986,7 @@ namespace FINDNN {
         }
     };
 
-    // mark cluster id and others on the tree of Centers
-    // template<int dim, class pointT, class nodeInfo>
-    // struct MarkKdTreeDynamCenters{
-    //     typedef typename nodeInfo::infoT infoT;
-    //     typedef dynamicKdNode<dim, pointT, nodeInfo> kdnodeT;
 
-    //     // pointT *centers;
-    //     intT *sizes;
-    //     infoT initVal = nodeInfo().initInfoVal();
-
-    //     MarkKdTreeDynamCenters(intT *t_sizes):sizes(t_sizes){
-    //     }
-    //     MarkKdTreeDynamCenters(){
-    //     }
-
-    //     inline bool doMark(intT C, intT round){ return true;}
-
-    //     inline bool isTopDown(infoT info){return false;}//{ return get<0>(info) != -1;}
-
-    //     inline void TopDownNode(kdnodeT *Q, infoT info){
-    //         if(!isTopDown(info)) return;
-    //         Q->nInfo.setInfo(info);
-    //     }
-
-    //     inline void BottomUpNode(kdnodeT *Q, infoT info){
-    //         if(isTopDown(info)) return;
-    //         Q->nInfo.setMinN(min(Q->left->nInfo.getMinN(), Q->right->nInfo.getMinN()));
-    //     }
-
-    //     inline void BaseCase(kdnodeT *Q, infoT info){
-    //         if(isTopDown(info)){
-    //             Q->nInfo.setInfo(info);
-    //         }else{
-    //             intT min_n = numeric_limits<intT>::max(); 
-    //             for(intT i=1; i<Q->size(); ++i){
-    //                 if(Q->items[i]){
-    //                 intT id_temp = Q->items[i]->idx();
-    //                 min_n = min(min_n, sizes[id_temp]);  }
-    //             }
-    //             Q->nInfo.setInfo(infoT(min_n));
-    //         }
-    //     }
-
-    //     inline infoT SwitchMode(kdnodeT *Q, infoT info){ //must be -1
-    //         return info;
-    //     }
-
-    //     inline bool Par(kdnodeT *Q){return Q->size() > 1000;}
-
-    //     inline bool Stop(kdnodeT *Q, infoT info){
-    //         return false;
-    //     }
-
-    // };
-    // template<class nodeT>
-    // struct ShiftPoints{
-    //     intT delta;
-
-    //     ShiftPoints(intT ddelta):delta(ddelta){}
-
-    //     inline bool isTopDown(intT id){ return id != -1;}
-
-    //     inline void TopDownNode(nodeT *Q, intT id){
-    //        Q->items += delta;
-    //     }
-
-    //     inline void BottomUpNode(nodeT *Q, intT id){
-    //     }
-
-    //     inline void BaseCase(nodeT *Q, intT id){
-    //         Q->items += delta;
-    //     }
-
-    //     inline intT SwitchMode(nodeT *Q, intT id){
-    //         return -1;
-    //     }
-
-    //     inline bool Par(nodeT *Q){return Q->size() > 2000;}
-
-    //     inline bool Stop(nodeT *Q, intT id){
-    //         return false;
-    //     }
-
-    // };
 
     template<class nodeT, class F, class E>
     void singletree(nodeT *Q, F *f, E info){
@@ -1209,24 +1007,6 @@ namespace FINDNN {
             f->BottomUpNode(Q, info);
         }
     }
-
-    // template<int dim, class nodeT>
-    // void markTree(nodeT *Q, UnionFind::ParUF<intT> *uf, intT cid = -1){
-    //     typedef MarkClusterId<dim, nodeT> M;
-    //     M *marker = new M(uf);
-    //     singletree<nodeT, M, intT>(Q, marker, cid);
-    // }
-
-    // template<class nodeT>
-    // void shiftPoints(nodeT *Q, intT n, intT oldOffset, intT newOffset, bool flag){
-    //     intT delta = newOffset + n - oldOffset; // 1 to 2
-    //     if(!flag){
-    //         delta = newOffset - (oldOffset + n); // 2 to 1, negative
-    //     }
-    //     typedef ShiftPoints<nodeT> S;
-    //     S *marker = new S(delta);
-    //     singletree<nodeT, S, intT>(Q, marker, NULL);
-    // }
 
 
     template<int dim, class nodeT>

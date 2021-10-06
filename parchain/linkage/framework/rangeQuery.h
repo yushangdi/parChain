@@ -95,11 +95,6 @@ namespace FINDNN {
 
         inline tuple<intT, bool> incrementTable(intT Rid, intT a = 1){
             return distComputer->incrementTable(tb, Rid,  cid, a);
-            // bool inserted; bool reach_thresh;
-            // tie(inserted, reach_thresh) = tb->insert_thresh(make_pair(Rid,a));
-            // if (inserted) return make_tuple(a, false);
-            // if (reach_thresh) return make_tuple(0, true);
-            // return make_tuple(tb->find_thresh(Rid).second, false);
         }
 
         inline bool isComplete(){return false;}
@@ -461,12 +456,6 @@ namespace FINDNN {
         }
 
         inline void updateDist(intT Rid){ // need another table!
-            // only first inserted is true, CHECK_TOKEN as a placeholder
-            // if already in table, entry will not be replaced because CHECK_TOKEN is inserted
-            // success = true when pair not in tbs and this is the first insert
-                // if((cid == 609948 && Rid == 563148) || (cid ==  563148 && Rid == 609948)){
-                //     cout << cid << " !!!!!" <<endl;
-                // }
             if(!no_cache){
             bool success = insert_check(cid, Rid);
             if(!success){  // only compute distance once

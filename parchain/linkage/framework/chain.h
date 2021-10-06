@@ -9,7 +9,6 @@ using namespace std;
 // *************************************************************
 //   NN Chain
 // *************************************************************
-// remove chainRev for ave?
 template<int dim>
 struct TreeChainInfo{
   intT *terminal_nodes;// must be cluster id
@@ -21,7 +20,6 @@ struct TreeChainInfo{
   pair<intT, double> *revTerminals; // indexed by ith temrinal nodes
   LDS::PairComparator21<pair<long, double>> EC2;
   double eps;
-  // const LDS::PairComparator2<pair<long, double>> EC2 = LDS::PairComparator2<pair<long, double>>();
 
   TreeChainInfo(intT n, double eps){
     EC2 = LDS::PairComparator21<pair<long, double>>(eps);
@@ -56,7 +54,6 @@ struct TreeChainInfo{
     utils::writeMin(&chainRev[nn], make_pair((long)cid,w), EC2); 
   }
 
-  //TODO: change chain[prev[cid]] to -1 as well if code = -1
   // then in checking, only check for -1
   inline void invalidate(intT cid, intT code){
     chain[cid] = code;
@@ -123,7 +120,6 @@ inline void zero_chain_debug(TF *finder, int round, CH* info){
     cout << "0 chain num !!!!!" << endl;
     intT cid = finder->activeClusters[0];
       for(intT i=0;i<100;++i){
-        // cout << info->chain[cid] << endl;
         cout << cid << " " << finder->edges[cid].second << " " << std::setprecision(23) << finder->edges[cid].getW() << endl;
         cid = info->chain[cid];
     }

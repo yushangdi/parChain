@@ -7,15 +7,12 @@
 #include "gettime.h"
 #include "unionfind.h"
 
-// #define A_HASH_LINKAGE_PROB_PRINT
-
 #include "ndHash.h"
 #include "serialHash.h"
 
 #include "kdTree2.h"
 #include "dendrogram.h"
 
-// #define TIMING2
 #define ALLOCDOUBLE
 #define MAX_CACHE_TABLE_SIZE_INIT 64
 #define LINKAGE_LOADFACTOR 2.0
@@ -42,14 +39,9 @@ using namespace std;
 template<int dim, class distF, class Fr, class M>
 class TreeNNFinder { //: public NNFinder<dim>
   public:
-  // typedef iPoint<dim> pointT;
   typedef typename distF::pointT pointT;
-  // typedef typename FINDNN::CLinkNodeInfo nodeInfo;
   typedef typename Fr::nodeInfo nodeInfo;
-  // typedef FINDNN::AveLinkNodeInfo<dim, pointT *> nodeT;
   typedef typename distF::nodeT nodeT;
-  // typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
-  // typedef kdTree<dim, pointT, nodeInfo > treeT;
   typedef typename Fr::kdnodeT kdnodeT;
   typedef typename Fr::kdtreeT treeT;
   typedef LDS::distCacheT distCacheT;
@@ -95,13 +87,8 @@ class TreeNNFinder { //: public NNFinder<dim>
   long *distance_computed;
   long *pointsInRange;
   unsigned long long *pointsInDist;
-  // long max_max_cache_used_allrounds=0;
-  // long max_avg_cache_used_allrounds = 0;
-  // long times_cache_full;
 #endif  
 
-  //TODO: batch allocate cache table space
-  //TODO: free cache table when merges
   TreeNNFinder(intT t_n, point<dim>* t_P, UnionFind::ParUF<intT> *t_uf, 
     bool t_noCache, double t_eps, intT t_naive_thresh, intT t_cache_size): 
     uf(t_uf), n(t_n), no_cache(t_noCache), eps(t_eps), NAIVE_THRESHOLD(t_naive_thresh), MAX_CACHE_TABLE_SIZE(t_cache_size){
@@ -124,7 +111,6 @@ class TreeNNFinder { //: public NNFinder<dim>
     edges = (LDS::EDGE *)malloc(sizeof(LDS::EDGE) * n);
     parallel_for(intT i=0; i<n; ++i) {edges[i] = LDS::EDGE(-1,-1,numeric_limits<double>::max());}
 
-#ifdef ALLOCDOUBLE
     if(!no_cache){
     hashTableSize = min(n, 1 << utils::log2Up((uintT)(LINKAGE_LOADFACTOR*(uintT)MAX_CACHE_TABLE_SIZE)));
     TA = newA(distCacheT::eType, (long)n*2*hashTableSize);
@@ -139,19 +125,9 @@ class TreeNNFinder { //: public NNFinder<dim>
     parallel_for(long i=(long)n*hashTableSize; i<(long)n*2*hashTableSize; ++i) {
       TA[i] = emptyval;
     }
-#else
-    if(!no_cache){
-    cacheTbs = newA(distCacheT *, 2*n);
-    parallel_for(intT i=0; i<n; ++i) {
-      cacheTbs[i] = new distCacheT(min(MAX_CACHE_TABLE_SIZE_INIT, C), LDS::hashClusterAve(), LINKAGE_LOADFACTOR);
-    }
-#endif
 
 #ifdef BENCHCACHE
-    // alloc_cache=n*cacheTbs[0]->m;
     used_cache=0; 
-    // allocCacheCounters=newA(intT,n);
-    // parallel_for(intT i=0; i<n; ++i) {allocCacheCounters[i]=min(MAX_CACHE_TABLE_SIZE_INIT, C);}
     usedCacheCounters=newA(intT,n);
     parallel_for(intT i=0; i<n; ++i) {usedCacheCounters[i]=0;}
     cout << "alloc cache: " << n*2*hashTableSize << endl;
@@ -175,19 +151,10 @@ class TreeNNFinder { //: public NNFinder<dim>
 
   ~TreeNNFinder(){
     if(!no_cache){
-#ifndef ALLOCDOUBLE
-      cacheTbs[rootIdx[activeClusters[0]]]->del();
-      delete cacheTbs[rootIdx[activeClusters[0]]];
-      cacheTbs[rootIdx[activeClusters[0]]] = nullptr;
-      // parallel_for(intT i=0; i<2*n; ++i) {
-      //   if(cacheTbs[i] != nullptr) cout << "cache table not freed " << i << endl;
-      // }
-#else
       parallel_for(intT i=0; i<2*n; ++i) {
         delete cacheTbs[i];
       }
       free(TA);
-#endif
       free(cacheTbs);
 #ifdef BENCHCACHE
     free(usedCacheCounters);
@@ -306,7 +273,6 @@ class TreeNNFinder { //: public NNFinder<dim>
   tuple<double, bool> getDist(nodeT *inode,  nodeT *jnode, double lb = -1, double ub = numeric_limits<double>::max(), bool par = true){
     if(!no_cache){
     double d = find(inode, jnode);
-    // if(d == CHECK_TOKEN){cout << "find check token" << endl; exit(1);} // might find is in singleNN step in getNN
     if(d != UNFOUND_TOKEN && d != CHECK_TOKEN) return make_tuple(d, true); 
     }
     return make_tuple(getDistNaive(inode, jnode, lb, ub, par), false);
@@ -323,16 +289,11 @@ class TreeNNFinder { //: public NNFinder<dim>
     intT nr = rroot->n;
     double dij = getNode(newc)->getHeight();
 
-    // double n1 = (double)nql * (double)nr;
-    // double n2 = (double)nqr * (double)nr;
-    // double alln = n1 + n2 ;
 
     double d1,d2; bool intable;
     tie(d1, intable) = getDist(ql,rroot);
-    // d1 = n1 / alln * d1;
 
     tie(d2, intable) = getDist(qr,rroot);
-    // d2 = n2 / alln * d2;
 
     // return d1 + d2;
     return distComputer->updateDistO(d1, d2, nql, nqr, nr, dij);
@@ -341,9 +302,6 @@ class TreeNNFinder { //: public NNFinder<dim>
 
   //newc is a newly merged cluster
   // newc is new, rid is merged
-  //todo: cids on cluster tree do not need to be marked
-  // overwrite entry?
-  // TODO: consider changing hashtable to idx -> (idx, dist)
   inline double getNewDistN(intT newc, intT rid){
     nodeT* ql = getNode(newc)->left;
     intT nql = ql->n;
@@ -359,16 +317,12 @@ class TreeNNFinder { //: public NNFinder<dim>
 
     double d1,d2, d3, d4; bool intable;
     tie(d1, intable) = getDist(ql,rl);
-    // d1 = n1 / alln * d1;
 
     tie(d2, intable) = getDist(ql,rr);
-    // d2 = n2 / alln * d2;
 
     tie(d3, intable) = getDist(qr,rl);
-    // d3 = n3 / alln * d3;
 
     tie(d4, intable) = getDist(qr,rr);
-    // d4 = n4 / alln * d4;
 
     // return d1  + d2  + d3 + d4;
     return distComputer->updateDistN(d1, d2, d3, d4, nql, nqr, nrl, nrr, dij, dklr);
@@ -396,11 +350,7 @@ class TreeNNFinder { //: public NNFinder<dim>
 
   // store the closest nn in edges
   // assume edges[cid] already has max written
-  // todo: move kdtree to distComputer
   inline void getNN(intT cid, double ub = numeric_limits<double>::max(), intT t_nn = -1){
-    // if(edges[cid].getW() ==0){ can't stop, need the one with smallest id
-    //   return;
-    // }
 
     // after a round of C <= 50, we might not have all entries
     // in the table. We only have terminal nodes->all clusters
@@ -409,13 +359,9 @@ class TreeNNFinder { //: public NNFinder<dim>
       return;
     }
 
-    // if(cid == 23167){
-    //   cout << "::: " << t_nn << " " << ub << endl;
-    // }
 
     // check in merge, no inserting merged entry
     // can't writemin to all edges first and then search
-    // maybe because a bad neighbor can write to the edge and give a bad radius
     double minD = ub;
     intT nn = t_nn;
     bool intable;
@@ -426,7 +372,6 @@ class TreeNNFinder { //: public NNFinder<dim>
         if(distComputer->nn_process){
           distComputer->getRadius(cid, kdtree->root, &fs);
         }else{
-          // treeT treetmp = treeT(PP + cid, 1, false);
           pointT centroid = pointT(getNode(cid)->center, cid);
           treeT treetmp = treeT(&centroid, 1, false);
           // closest to a single point in cluster
@@ -438,17 +383,12 @@ class TreeNNFinder { //: public NNFinder<dim>
         if((!intable) && (!no_cache)  && (minD != LARGER_THAN_UB)){
           insert(cid, nn, minD);
         }
-        // if(getNode(nn)->n == 1 && minD == fs.e->getW()){ //useful for early rounds
-        //   utils::writeMin(&edges[cid], LDS::EDGE(cid, nn, minD), EC2); 
-        //   return ;
-        // }
+
     }
 
     utils::writeMin(&edges[cid], LDS::EDGE(cid, nn, minD), EC2); 
     utils::writeMin(&edges[nn], LDS::EDGE(nn, cid, minD), EC2);
-    // if(cid == 23167){
-    //   cout << "::: " << nn << " " << minD << endl;
-    // }
+
     if(minD ==0){
       return;
     }
@@ -457,14 +397,10 @@ class TreeNNFinder { //: public NNFinder<dim>
 #ifdef PERF_RANGE
     fr.setCounter(distance_computed, pointsInRange, pointsInDist);
 #endif  
-    // point<dim> pMin1, pMax1; 
-    // tie(pMin1, pMax1) = fr.getBox(getNode(cid), minD+eps);
-    // FINDNN::NNcandidate<point<dim>, Fr, kdnodeT>(kdtree->root, pMin1, pMax1, &fr);
+
     double r = fr.getBall(getNode(cid), minD+eps);
     FINDNN::NNcandidate<point<dim>, Fr, kdnodeT>(kdtree->root, getNode(cid)->center, r, &fr);
-    // if(cid == 23167){
-    //   cout << "done " << fr.getFinalNN() << " "  << fr.getFinalDist() << endl;
-    // }
+
 
     if(fr.local){
     nn = fr.getFinalNN();
@@ -516,10 +452,8 @@ class TreeNNFinder { //: public NNFinder<dim>
     distCacheT *tb1 = cacheTbs[idx1];
     distCacheT *tb2 = cacheTbs[idx2];
 
-    //TODO: optimize to  alloc only once
     _seq<typename distCacheT::eType> TAR1 = tb1->entries();
     _seq<typename distCacheT::eType> TAR2 = tb2->entries();
-    // if(C < 100)cout << "sizes in merge: " << TAR1.n+TAR2.n << "/" << tb1->m + tb2->m << endl;
     distCacheT *newtb = cacheTbs[idx(newc)];
 
     parallel_for(intT i = 0; i<(TAR1.n+TAR2.n); ++i){
@@ -613,11 +547,8 @@ class TreeNNFinder { //: public NNFinder<dim>
     free(activeClusters);
     activeClusters = newClusters.A;
     C = newClusters.n;
-    if(marker.doMark(C, round)){ //TODO: move marker to distComputation
-      // typedef FINDNN::MarkClusterId<dim, kdnodeT> M;
-      // M *cidMarker = new M(uf);
+    if(marker.doMark(C, round)){ 
       FINDNN::singletree<kdnodeT, M, typename M::infoT>(kdtree->root, &marker, marker.initVal);
-      // delete cidMarker;
     }
 
 #ifdef DEBUG
@@ -678,12 +609,6 @@ inline void fillTable(){
     }
   }
 }
-  // if((!finder->fullTableFlag) && (finder->C <= 50)){
-  //   finder->fillTable();
-  //   finder->fullTableFlag = true;
-  // }
-
-
 }; // finder end
 
 namespace ChainTree {
@@ -721,10 +646,8 @@ inline void link_terminal_nodes(UnionFind::ParUF<intT> *uf, TF *finder, TreeChai
 
   parallel_for(intT i = 0; i < chainNum; ++i){
     intT cid = info->terminal_nodes[i];
-    // intT cid = uf->find(edges[i].first); 
     intT nn = uf->find(edges[cid].second);
     intT nn_of_nn =info->getNN(nn);
-    // if( nn_of_nn> 0) nn_of_nn = uf->find(nn_of_nn); do not need because all clusters on chain did not merge in the last round
 
     // avoid merging twice
     // update chain info and merge trees
@@ -754,37 +677,21 @@ inline void link_terminal_nodes(UnionFind::ParUF<intT> *uf, TF *finder, TreeChai
   // insert to new hashtables and delete old hashtables
   parallel_for(intT i = 0; i < merged.n; ++i){
     intT newc = merged.A[i];//flags[i];
-    // if(newc != -1){
       finder->updateDist(newc);
-    // }
   }
 #ifdef TIMING2
 	if(LINKAGE_DOPRINT(round)){ UTIL::PrintSubtimer(":::update dist", t1.next());}
 #endif
 
-#ifndef ALLOCDOUBLE
-  // delete old hashtables
-  parallel_for(intT i = 0; i < merged.n; ++i){
-    intT newc = merged.A[i];//flags[i];
-    // if(newc != -1){
-      finder->cleanDist(newc);
-    // }
-  }
-#ifdef TIMING2
-	if(LINKAGE_DOPRINT(round)){ UTIL::PrintSubtimer(":::delete old table", t1.next());}
-#endif
-#endif
   free(merged.A);
   } //  end !no_cache
 
 }
 
-// TODO: proceed in stages to save work
 template<int dim, class TF>
 inline void chain_linkage(TF *finder, timer t1){
   UTIL::PrintCaption("CHAIN TREE");
   cout << "num workers " << getWorkers() << endl;
-  // cout << "MAX_CACHE_TABLE_SIZE " << MAX_CACHE_TABLE_SIZE << endl;
   cout << "hash table size " << finder->hashTableSize << endl;
   
   UnionFind::ParUF<intT> *uf = finder->uf;
@@ -796,8 +703,6 @@ inline void chain_linkage(TF *finder, timer t1){
 #ifdef VERBOSE
 	UTIL::PrintSubtimer("initialize", t1.next());
 #endif
-//  ofstream file_obj;
-//  file_obj.open("debug/avg_UCI1_32_1th.txt"); //"+ to_string(round) + "
 
   int round = 0;
   bool print = false;
@@ -821,7 +726,6 @@ inline void chain_linkage(TF *finder, timer t1){
 #endif
   }else{
     chain_find_nn(chainNum, finder, info);
-    // findAllNNBruteForce(chainNum, finder, info);
 #ifdef VERBOSE
 	if(print) UTIL::PrintSubtimer("find-nn", t1.next());
 #endif
@@ -831,25 +735,6 @@ inline void chain_linkage(TF *finder, timer t1){
       finder->checkCache();
       if(print) UTIL::PrintSubtimer("check-cache", t1.next());
 #endif
-  // cout << " ----" << endl;
-  // cout << finder->edges[41705].first << " " << finder->edges[41705].second << " "  << finder->edges[41705].getW() << endl;
-//  UTIL::printTuple(finder->getDist(11791, 1470));
-//  cout << finder->getDistNaiveDebug(11791, 1470) << endl;
-  // cout << " ----" << endl;
-//  UTIL::PrintTable(finder->getTable(11791));
-
-// if(true){
-//    for(intT i = 0; i < finder->C; ++i){
-//      file_obj << round << " " << finder->activeClusters[i] << endl;
-//    }
-//    file_obj << round << "========" << endl;
-//     for(intT i = 0; i < chainNum; ++i){
-//       intT cid = info->terminal_nodes[i];
-//       file_obj << round << " " << cid << " " << finder->edges[cid].second << " " << finder->edges[cid].getW() << endl;
-//     }
-
-//    file_obj << round << "========" << endl;
-// } //end true
 
     link_terminal_nodes<dim, TF>(uf, finder, info, round, flags);
 #ifdef VERBOSE

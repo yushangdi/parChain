@@ -36,11 +36,6 @@ namespace FINDNNP {
         if(f->Score(Q,R,check)) return;
 
         if(f->isLeaf(Q) && f->isLeaf(R)){ // not parallel bc leaf size should be small
-            // for(intT i=0; i<Q->n; ++i){
-            //     for(intT j=0;j<R->n; ++j){
-            //         f->BaseCase(Q,R,i,j);
-            //     }
-            // }
             f->BasePost(Q,R);
         }else if (f->isLeaf(Q)){
            double dLeft = f->NodeDistForOrder(Q, R->left);
@@ -71,12 +66,6 @@ namespace FINDNNP {
             callOrder[2] = make_pair(f->NodeDistForOrder(Q->left, R->right), make_pair(Q->left, R->right));
             callOrder[3] = make_pair(f->NodeDistForOrder(Q->right, R->right), make_pair(Q->right, R->right));
             sort(callOrder, callOrder + 4);
-            // parallel_for_1 (int cc = 0; cc < 4; ++ cc) {//TODO: expand to spawn
-            //     int c = f->SpawnOrder(cc);
-            //     nodeT *QQ = callOrder[c].second.first;
-            //     nodeT *RR = callOrder[c].second.second;
-            //     if(!f->Score(callOrder[c].first, QQ, RR)) dualtree<nodeT, F>(QQ, RR, f, false);
-            // }
                 cilk_spawn dualtree<nodeT, F>(callOrder[f->SpawnOrder(0)].second.first, callOrder[f->SpawnOrder(0)].second.second, f, true);
                 cilk_spawn dualtree<nodeT, F>(callOrder[f->SpawnOrder(1)].second.first, callOrder[f->SpawnOrder(1)].second.second, f, true);
                 cilk_spawn dualtree<nodeT, F>(callOrder[f->SpawnOrder(2)].second.first, callOrder[f->SpawnOrder(2)].second.second, f, true);

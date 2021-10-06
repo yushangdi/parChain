@@ -49,10 +49,6 @@ struct distAverage4: public distAbstract {
   }
     
   distAverage4(pointT *t_PP, intT t_n, bool t_no_cache): PP(t_PP){
-    // if(!t_no_cache){
-    //   cout << "no cache needs to be true" << endl;
-    //   exit(1);
-    // }
 
     centers = newA(pointT, t_n);
     vars = newA(double, t_n);
@@ -97,7 +93,6 @@ struct distAverage4: public distAbstract {
 
     parallel_for(intT i = 0; i < C; ++i){
       intT cid = finder->activeClusters[i];
-      // intT oldMap = centerMap[cid];
       nodeT *clusterNode = finder->getNode(cid);
       centers[i] = pointT(clusterNode->center, cid);
       centerMap[cid] = i;
@@ -182,7 +177,6 @@ struct distAverage5: public distAbstract {
   LDS::Method method = LDS::AVG;
 
   pointT *centers; //ith location is the center of cluster activeCluster[i], need to be contiguous when building tree
-  // intT *centerMap; // ith location is the idx of cluster i in centers 
 
   // copy points from oldArray[oldOffset:oldOffset+n] to newArray[newOffset:newOffset+n]
   inline void copyPoints(pointT *oldArray, pointT *newArray, intT copyn, intT oldOffset, intT newOffset){
@@ -206,10 +200,8 @@ struct distAverage5: public distAbstract {
     parallel_for(intT i=0; i<n; ++i) {clusterOffsets[i] = i;}
 
     centers = newA(pointT, n);
-    // centerMap = newA(intT, t_n);
 
     parallel_for(intT i=0; i<n; ++i) {centers[i] = PP[i];}
-    // parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
 
   }
 
@@ -252,7 +244,6 @@ struct distAverage5: public distAbstract {
       newArray  = clusteredPts2;
     }
 
-    //TODO: optimize for 2 clusters
     parallel_for(intT i = 0; i < C; ++i){
       intT cid  = activeClusters[i];
       nodeT *clusterNode = finder->getNode(cid);
@@ -332,7 +323,6 @@ struct distComplete3: public distAbstract {
   typedef FINDNN::NNcomplete1<dim, kdnodeT> FComp;
 
   typedef tuple<intT, intT, long> clusterCacheT;//(round, count, cid), use long to pack to 2^i bytes
-  // typedef pair<pair<intT, intT>, pair<intT, intT>> clusterCacheT; 
 
   // private:
   pointT *PP;//used to initNodes only
@@ -341,7 +331,6 @@ struct distComplete3: public distAbstract {
   clusterCacheT *clusterTbs; // cluster to count
   uintT n;
   intT PNum;
-  // bool no_cache;
   const bool id_only = true;
   bool nn_process = true;
   LDS::Method method = LDS::COMP;
@@ -360,30 +349,9 @@ struct distComplete3: public distAbstract {
     }
   };
 
-  // template<int k>
-  // inline intT get(clusterCacheT &i){
-  //   if (k == 0) return i.first.first;
-  //   if (k == 1) return i.first.second; 
-  //   if (k == 2) return i.second.first;
-  // }
-
-  // template<int k>
-  // inline void inc(clusterCacheT* tb, intT Rid, intT a){
-  //   if (k == 0) tb[Rid].first.first += a; 
-  //   else if (k == 1) tb[Rid].first.second += a; 
-  //   else if (k == 2) tb[Rid].second.first += a; 
-  // }
-
-  // inline clusterCacheT make_entry(intT round, intT cid, intT a){
-  //   return make_pair(make_pair(round, a), make_pair(cid, 0));
-  // }
-
-  //(count, if reached table end)
-  //assume range query is serial
+  
   inline tuple<intT, bool> incrementTable(clusterCacheT* tb, intT Rid, intT cid, intT a = 1){
 
-    // utils::writeMax(tb+Rid, make_tuple(round, 0, (long)cid), cmp());
-    // utils::writeAdd( &get<1>(*(tb+Rid)), a);  //((intT *)tb)+(2*Rid + 1)
     if(get<0>(tb[Rid]) != round || get<2>(tb[Rid]) != cid){
       tb[Rid] =  make_tuple(round, a, (long)cid);//make_entry(round, cid, a);
     }else{
@@ -398,15 +366,11 @@ struct distComplete3: public distAbstract {
       kdtrees[i] = new kdtreeT(PP + i, 1, false);
     }
 
-    // if(no_cache){
       PNum =  getWorkers();
       clusterTbs = newA(clusterCacheT, PNum * n);
       parallel_for(intT i = 0; i < PNum * n; ++i){
         clusterTbs[i] = make_tuple(1, 0, (long)-1);
       }
-    // }else{
-    //   clusterTbs = nullptr;
-    // }
 
   }
 
@@ -495,9 +459,7 @@ struct distComplete3: public distAbstract {
 
   ~distComplete3(){
     free(kdtrees);
-    // if(no_cache){
-      free(clusterTbs);
-    // }
+    free(clusterTbs);
   }
 
 };
@@ -509,7 +471,6 @@ struct distComplete3: public distAbstract {
 // pointer array
 // not keeping clustered points together in 1 array, 
 // because when rebuidling kdtrees, need to allocate nodes anyway
-// TODO: arrays to copy both nodesm and points
 // switch by looking at how many merged clusters
 // build kdtrees of center points each round
 template<int dim, class pointTT, class nodeTT, class nodeInfo, class M>
@@ -519,13 +480,11 @@ struct distWard1: public distAbstract {
   typedef kdNode<dim, pointT, nodeInfo> kdnodeT;
   typedef kdTree<dim, pointT, nodeInfo> kdtreeT;
 
-  // bool no_cache = true;
   bool id_only = true;
   LDS::Method method = LDS::WARD;
   pointT *PP;
   M marker;
 
-  // kdtreeT *kdtree;
   pointT *centers; //ith location is the center of cluster activeCluster[i]
   intT *centerMap; // ith location is the idx of cluster i in centers
   intT *sizes; //ith location is the size of cluster i
@@ -536,10 +495,6 @@ struct distWard1: public distAbstract {
   }
     
   distWard1(pointT *t_PP, intT t_n, bool t_no_cache): PP(t_PP){
-    // if(!no_cache){
-    //   cout << "no cache needs to be true" << endl;
-    //   exit(1);
-    // }
     centers = newA(pointT, t_n);
     sizes = newA(intT, t_n);
     centerMap = newA(intT, t_n);
@@ -549,7 +504,6 @@ struct distWard1: public distAbstract {
     parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
 
 
-    // kdtree = new kdtreeT(centers, t_n);
     marker = M(sizes);
 
   }
@@ -561,12 +515,9 @@ struct distWard1: public distAbstract {
   inline double getDistNaive(intT cid1, intT cid2, 
                           double lb = -1, double ub = numeric_limits<double>::max(), 
                           bool par = true){ 
-    // return this->getDistNaive(cid1,cid2);
     double ni = (double) sizes[cid1]; 
     double nj = (double) sizes[cid2];
-    // if(ni + nj > 2) 
     return sqrt(2*(ni*nj)*centers[centerMap[cid1]].pointDistSq(centers[centerMap[cid2]])/(ni + nj));
-    // return centers[centerMap[cid1]].pointDist(centers[centerMap[cid2]]);
   }
 
   inline double getDistNaive(nodeT *inode,  nodeT *jnode, 
@@ -617,7 +568,6 @@ struct distWard1: public distAbstract {
   }
 
   ~distWard1(){
-    // delete kdtree;
     free(centers);
     free(sizes);
     free(centerMap);
@@ -645,7 +595,6 @@ struct distCubicDummy: public distAbstract {
   LDS::Method method = LDS::AVG;
 
   pointT *centers; //ith location is the center of cluster activeCluster[i], need to be contiguous when building tree
-  // intT *centerMap; // ith location is the idx of cluster i in centers 
 
   intT *dummy;
 
@@ -671,10 +620,8 @@ struct distCubicDummy: public distAbstract {
     parallel_for(intT i=0; i<n; ++i) {clusterOffsets[i] = i;}
 
     centers = newA(pointT, n);
-    // centerMap = newA(intT, t_n);
 
     parallel_for(intT i=0; i<n; ++i) {centers[i] = PP[i];}
-    // parallel_for(intT i=0; i<t_n; ++i) {centerMap[i] = i;}
 
     dummy = newA(intT, getWorkers() * ELTPERCACHELINE);
 
@@ -728,7 +675,6 @@ struct distCubicDummy: public distAbstract {
       newArray  = clusteredPts2;
     }
 
-    //TODO: optimize for 2 clusters
     parallel_for(intT i = 0; i < C; ++i){
       intT cid  = activeClusters[i];
       nodeT *clusterNode = finder->getNode(cid);
@@ -755,7 +701,6 @@ struct distCubicDummy: public distAbstract {
       intT cid = finder->activeClusters[i];
       nodeT *clusterNode = finder->getNode(cid);
       centers[i] = pointT(clusterNode->center, cid);
-      // centerMap[cid] = i;
     }
 
     // build kdtree
@@ -858,18 +803,6 @@ struct distHDBSCAN1{
 
   template<class kdnodeT>
   inline void updateUB(kdnodeT *Q){
-    // if(Q->nInfo.max_core_dist == -1){
-    //   if(Q->isLeaf()){
-    //     double temp = coredists[Q->items[0]->idx()];
-    //     for(intT i=1; i<Q->size(); ++i){
-    //       double q_cd = coredists[Q->items[i]->idx()]; 
-		//       if(q_cd > temp) temp = q_cd;
-    //     }
-    //      Q->nInfo.max_core_dist = temp;
-    //   }else{
-    //     Q->nInfo.max_core_dist = max((Q->left->nInfo).max_core_dist, (Q->right->nInfo).max_core_dist);
-    //   }
-    // }//end of max_core_dist == -1
     if ( Q->nInfo.getCId() < 0){
         (Q->nInfo).updateUB(max(Q->Diameter(),Q->nInfo.max_core_dist) );
     }

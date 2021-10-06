@@ -50,7 +50,6 @@ struct DM{
 
     inline long getInd(intT i, intT j){
         if(i == j) return distmat_size;
-        // return (((2*distmat_size-3-(r_))*(r_))>>1)+(c_)-1;
         long r_ = static_cast<long>(i);
         long c_ = static_cast<long>(j);
         return (((2*n-r_-3) * r_) >> 1 )+ (c_)-1;
@@ -145,7 +144,6 @@ struct distMatrixAbstract: public distAbstract {
 
     parallel_for(intT i = 0; i < C; ++i){
       intT cid = finder->activeClusters[i];
-      // intT oldMap = centerMap[cid];
       nodeT *clusterNode = finder->getNode(cid);
       centers[i] = pointT(clusterNode->center, cid);
     }
@@ -212,9 +210,6 @@ struct distAverage4: public distMatrixAbstract<dim, pointTT, nodeTT> {
 
   template<class F>
   inline void postProcess(F *finder){
-    // no need, already squared in distance matrix.
-    // parallel_for(intT i=0; i<2*finder->n-1; ++i) {finder->nodes[i].height = finder->nodes[i].height * finder->nodes[i].height;}
-    // parallel_for(intT i=0; i<finder->n; ++i) {finder->uf->values[i] = finder->uf->values[i]  * finder->uf->values[i];}
   }
 
   ~distAverage4(){

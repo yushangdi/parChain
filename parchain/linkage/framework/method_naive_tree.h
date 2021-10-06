@@ -29,8 +29,6 @@ inline void naive_find_nn(LDS::EDGE *edges, TreeNNFinder<dim> *finder){
 
 template<int dim>
 inline void naive_find_nn_range(LDS::EDGE *edges, TreeNNFinder<dim> *finder){
-  // intT PNum =  getWorkers(); 
-  // intT *sizes = newA(intT, PNum * finder->n);//TODO: optimize to C size
 
   parallel_for(intT i = 0; i < finder->C; ++i){
     intT cid = finder->activeClusters[i];
@@ -50,19 +48,11 @@ inline void naive_find_nn_range(LDS::EDGE *edges, TreeNNFinder<dim> *finder){
 // uf save the weight when connected
 template<int dim>
 inline void naive_link(LDS::EDGE *edges, UnionFind::ParUF<intT> *uf, TreeNNFinder<dim> *finder, intT C){
-    //TODO: make parallel
-    // find all component ids, find the max
-    // sampleSort(edges, C, LDS::edgeComparator());
 #ifdef DEBUG
     UTIL::PrintVec2(edges, C);
 #endif
     parallel_for(intT i = 1; i < C; ++i){
-      // intT u = uf->find(edges[i].first);
-      // intT v = uf->find(edges[i].second);
-      // if(u==v) continue;
       uf->link(edges[i].first, edges[i].second, edges[i].getW() );
-      // intT newc = uf->find(u);
-      // finder->merge(u,v,newc);
     }
 }
 

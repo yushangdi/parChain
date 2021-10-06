@@ -6,19 +6,12 @@
 #define VERBOSE
 // #define DEBUG
 // #define BENCHCACHE
-#define PERF_RANGE
+// #define PERF_RANGE
 #define ELTPERCACHELINE 128/sizeof(intT)
 
-
-#ifdef USEJEMALLOC
-#include<jemalloc/jemalloc.h>
-#define jeNewA(__E,__n) (__E*) je_custom_prefix_malloc((__n)*sizeof(__E))
-#define jeFree(__E) je_custom_prefix_free(__E)
-#endif
-
-
-#define PRINT_FREQ 1
-#define LINKAGE_DOPRINT(round) (round < 5 || round % PRINT_FREQ == 0)
+#define PRINT_FREQ 1000
+#define LINKAGE_DOPRINT(round) false
+//(round < 5 || round % PRINT_FREQ == 0)
 #define INTT_MAX numeric_limits<intT>::max()
 #define TIMING2
 
@@ -26,12 +19,9 @@
 #include "unionfind.h"
 #include "gettime.h"
 #include "kdTree2.h"
-// #include "dynamicKdTree.h"
 #include "neighbor.h"
-// #include "distanceMatrix.h"
 #include "method_chain_tree.h"
 #include "method_chain_matrix_range.h"
-// #include "method_boruvka.h"
 #include "dendrogram.h"
 
 #include <limits>
@@ -127,14 +117,10 @@ UnionFind::ParUF<intT> *linkage(point<dim>* P, intT n, commandLine params, Union
       exit(1);
   }
 
-  // // uf->serialize("./uf_" + version + ".txt" );
   cout << std::fixed;
   cout << std::setprecision(10);
   UTIL::PrintFunctionItem("CLINK", "COST", uf->cost() );
 
-  // uf->deserialize("./uf_" + version + ".txt" );
-  // intT cutoff = 10000;
-  // uf->fcluster(cutoff, true, "./cluster_" + version + "_"  + std::to_string(cutoff) + ".txt");
   return uf;
 }
 

@@ -1,12 +1,5 @@
 include parallelDefs
 
-ifndef USEJEMALLOC
-JEMALLOC =
-else
-JEMALLOCLD = $(shell jemalloc-config --libdir)
-JEMALLOC = -DUSEJEMALLOC -L$(JEMALLOCLD) -ljemalloc
-endif
-
 COMMON = IO.h parseCommandLine.h parallel.h runTests.py sequence.h utils.h geometry.h geometryIO.h gettime.h sampleSort.h
 
 %.o : %.C $(COMMON)
