@@ -9,10 +9,6 @@
 using namespace std;
 using namespace parlay;
 
-// #define newA(a,n) (a*)malloc(sizeof(a)*n);
-
-// #define parallel_for for
-
 namespace UTIL {
   inline void PrintCaption(string t_in) {
     cout << "========= " << t_in << " =========" << endl;
@@ -101,13 +97,9 @@ namespace UnionFind {
     ParUF(IntType n, bool t_store_value = false) {
 		m_n = n;
 		parents = (IntType *)malloc(sizeof(IntType)*n);
-		// my_parallel_for (IntType i=0; i < n; i++) parents[i] = std::numeric_limits<IntType>::max();
 		parallel_for (0,n, [&](IntType i){parents[i] = std::numeric_limits<IntType>::max();}) ;
 
 		hooks = (pair<IntType, IntType> *) malloc(sizeof(pair<IntType, IntType>) * n);
-		// my_parallel_for (IntType i=0; i < n; i++) {
-		// hooks[i] = make_pair(std::numeric_limits<IntType>::max(), std::numeric_limits<IntType>::max());
-		// }
 		parallel_for (0,n, [&](IntType i){hooks[i] = make_pair(std::numeric_limits<IntType>::max(), std::numeric_limits<IntType>::max());}) ;
 
 		
@@ -125,10 +117,6 @@ namespace UnionFind {
       // Not making parent array volatile improves
       // performance and doesn't affect correctness
       inline IntType find(IntType i) {
-				// if(i >= m_n){
-				// 	cout << "uf find larger than init size" << endl;
-				// 	return i;
-				// }
 	IntType j = i;
 	if (parents[j] == std::numeric_limits<IntType>::max()) return j;
 	do j = parents[j];
@@ -193,7 +181,6 @@ namespace UnionFind {
 				cout << ufEdge.first << " ";
 				cout <<  ufEdge.second << " ";
 				if(values) cout << std::setprecision(6)  <<  values[i] << endl;
-				// cout << "========= " << endl;
 			} 
 			}
 		}else{
@@ -219,7 +206,6 @@ namespace UnionFind {
 				file_obj << ufEdge.first << " ";
 				file_obj <<  ufEdge.second << " ";
 				if(values) file_obj << std::setprecision(6)  <<  values[i] << endl;
-				// cout << "========= " << endl;
 			} 
 			}
 		}else{
@@ -228,7 +214,6 @@ namespace UnionFind {
 			if (ufEdge.first < m_n) {
 				file_obj << ufEdge.first << " ";
 				file_obj <<  ufEdge.second << endl;
-				// cout << "========= " << endl;
 			} 
 			}
 		}
@@ -245,92 +230,6 @@ namespace UnionFind {
 		UTIL::PrintFunctionItem("CLINK", "Edge Num", ct );
 		return result;
 	}
-
-	// int *fcluster(double eps, bool output = false, string fileName = "./cluster.txt"){
-
-  //    	 UnionFind::ParUF<int> *uf2 = new UnionFind::ParUF<int>(m_n, false);
-	//  	 int *clusters = (int *)malloc(sizeof(int)*m_n);
-
-	//   	my_parallel_for(IntType i = 0; i < m_n; ++ i) {
-	// 	  if(get_edge(i).first < m_n && values[i] <= eps){
-	// 		uf2->link(get_edge(i).first, get_edge(i).second);
-	// 	  }
-	// 	}
-		
-	// 	my_parallel_for(int i = 0; i < m_n; ++i){
-  //     		clusters[i] = uf2->find(i);
-  //   	}
-
-	// 	if(output){
-	// 		ofstream file_obj;
-	// 		file_obj.open(fileName);
-	// 		for (IntType i = 0; i < m_n; ++ i){
-	// 		file_obj << clusters[i] <<  ", ";
-	// 		}
-	// 		file_obj << endl;
-	// 	}
-
-	// 	delete uf2;
-
-	// 	return clusters;
-
-	// }	
-
-	// void serialize(string fileName = "./uf.txt"){
-	// 	ofstream file_obj;
-	// 	file_obj.open(fileName);
-	// 	file_obj << m_n << endl;
-	// 	file_obj << store_value << endl;
-	// 	for(int i=0; i<m_n; ++i){
-	// 		file_obj << hooks[i].first << endl;
-	// 	}
-	// 	for(int i=0; i<m_n; ++i){
-	// 		file_obj << hooks[i].second << endl;
-	// 	}
-	// 	for(int i=0; i<m_n; ++i){
-	// 		file_obj << parents[i] << endl;
-	// 	}
-	// 	if(!store_value) return;
-	// 	for(int i=0; i<m_n; ++i){
-	// 		file_obj << values[i] << endl;
-	// 	}
-	// 	file_obj.close();
-	// }
-
-	// void deserialize(string fileName = "./uf.txt"){
-	// 	ifstream file_obj;
-	// 	file_obj.open(fileName.c_str(), ios::in);
-	// 	string ns;
-	// 	getline(file_obj, ns);
-	// 	assert(m_n <= stoi(ns)); // otherwise will overflow
-
-	// 	getline(file_obj, ns, '\n');
-	// 	bool tmp = (stoi(ns) != 0);
-	// 	//assert(store_value == tmp); // otherwise will overflow
-
-	// 	for(int i=0; i<m_n; ++i){
-	// 		getline(file_obj, ns, '\n');
-	// 		hooks[i].first =  stoi(ns);
-	// 	}
-	// 	for(int i=0; i<m_n; ++i){
-	// 		getline(file_obj, ns, '\n');
-	// 		hooks[i].second =  stoi(ns);
-	// 	}
-	// 	for(int i=0; i<m_n; ++i){
-	// 		getline(file_obj, ns, '\n');
-	// 		parents[i] =  stoi(ns);
-	// 	}
-	// 	if(store_value){
-	// 	for(int i=0; i<m_n; ++i){
-	// 		getline(file_obj, ns, '\n');
-	// 		values[i] =  stod(ns);
-	// 	}
-	// 	}
-
-	// 	file_obj.close(); //close the file object.
-
-	// }
-	
 
     };
   
