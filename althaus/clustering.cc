@@ -9,25 +9,23 @@
 #include <set>
 #include <queue>
 
-// #define PARLAY_SEQUENTIAL
-// #include "parallel.h"
-
 #include "gettime.h"
-#include "parlaylib/include/parlay/parallel.h"
-#include "parlaylib/include/parlay/sequence.h"
-#include "parlaylib/include/parlay/range.h"
+#include "parlay/parallel.h"
+#include "parlay/sequence.h"
+#include "parlay/range.h"
 
-#include "parlaylib/include/parlay/slice.h"
-#include "parlaylib/include/parlay/primitives.h"
+#include "parlay/slice.h"
+#include "parlay/primitives.h"
 #include "unionfind.h"
 
 
 using namespace std;	
 using namespace parlay;
 
+using T=float;
 
-// #define MAX_float 1e+12
-#define MAX_float numeric_limits<float>::max()
+// #define MAX_T
+#define MAX_T numeric_limits<T>::max()
 
 class pointset {
   private:
@@ -38,7 +36,7 @@ class pointset {
     int size_;
 
     // Points[i][j] gives the jth coordinate of pint i 
-    float** Points;
+    T** Points;
 
   public:
 
@@ -48,14 +46,12 @@ class pointset {
     }
 
     void from_file(FILE *pFile, int s) {
-      // ifstream is(name);
       size_ = s;
-      float h;
-      Points=new float*[size_];
+      T h;
+      Points=new T*[size_];
       for(int i=0; i<size_; i++) {
-        Points[i]=new float[dimension];
+        Points[i]=new T[dimension];
         for(int j=0; j<dimension; j++) {
-          // is>>h; Points[i][j]=h;
           if(1  == fscanf(pFile, "%f", &h)){
           Points[i][j]=h;
           }else{
@@ -69,18 +65,18 @@ class pointset {
     // We assume that this function is called exactly once
     void uniform_random(int s) {
       size_=s;
-      Points=new float*[size_];
+      Points=new T*[size_];
       for(int i=0; i<size_; i++) {
-       Points[i]=new float[dimension];
+       Points[i]=new T[dimension];
        for(int j=0; j<dimension; j++) {
-         Points[i][j]=(float) random()/RAND_MAX;
+         Points[i][j]=(T) random()/RAND_MAX;
        }
       }
     }
 
     // We compute the distance of the points i and j
-    float point_dist(int i, int j) const {
-      float d=0;
+    T point_dist(int i, int j) const {
+      T d=0;
       for(int k=0; k<dimension; k++) d+=(Points[i][k]-Points[j][k])*(Points[i][k]-Points[j][k]);
       return sqrt(d);
     }
@@ -100,7 +96,7 @@ class pointset {
 
     // We compute the distance of the points i and j
     template<class PS>
-    float point_dist(const PS& P, int i, int j) {
+    T point_dist(const PS& P, int i, int j) {
       return P.point_dist(i,j);
     }
  
@@ -108,7 +104,7 @@ class pointset {
  class myPQ{
 
    public:
-   typedef tuple<float, int> entry ;
+   typedef tuple<T, int> entry ;
    vector<entry> v;
 
   void pop(){
@@ -150,12 +146,10 @@ class pointset {
 
  };
 
-//Plan: use kBuffer to get the kth smallest neighbor, 
-// make queue with best k
+
 // use a set to store the removed element, check upon pop
 class junk_array {
-  typedef tuple<float, int> entry ;
-  // typedef priority_queue <entry, vector<entry>, greater<entry> > pq;
+  typedef tuple<T, int> entry ;
   typedef myPQ pq;
   
   private:
@@ -174,19 +168,6 @@ class junk_array {
 
   public:
 
-  // void checkqueue(int i){
-  //   cout << "===" << endl;
-  //   auto vi = queues[Mapping2[current_cluster(i)]];
-  //   bool flag = false;
-  //    for(auto it = vi->begin(); it != vi->end(); ++it) {
-  //      float d = -1 * get<0>(*it);
-  //      int key = get<1>(*it);
-  //      if(key == 1970 || (d > 35 && d< 36 )){
-  //        cout << d << " " << key << endl;
-  //      }
-  //    }
-
-  // }
     junk_array(pointset &P, int num_distances_) {
       size=P.size();
       num_processor = num_workers();
@@ -217,12 +198,10 @@ class junk_array {
     }
 
     ~junk_array() {
-      // delete help;
       delete[] Mapping;
       delete[] Mapping2;
 
       delete[] queues;
-      // uf.del();
     }
 
     int current_cluster(int i) {
@@ -230,25 +209,20 @@ class junk_array {
       return uf.find(i);
     }
 
-    //optimize: use k-buffer
     void fillQueue(pointset &P, int i)
     {
       
       int help_start = worker_id() * size;
-      for(int j=0; j<P.size(); j++) { help[j + help_start]=tuple<float, int>(-1,-1); }
+      for(int j=0; j<P.size(); j++) { help[j + help_start]=tuple<T, int>(-1,-1); }
       
       for(int ii=0; ii<P.size(); ii++) if(current_cluster(ii)==current_cluster(i)) { // loop over points in the same cluster as i 
         for(int j=0; j<P.size(); j++) { // loop over other clusters
           int k=current_cluster(j);
           if(k == current_cluster(i)) continue;
-          float d=point_dist(P,ii,j);
+          T d=point_dist(P,ii,j);
           if(d>get<0>(help[k+ help_start])) { //only store one copy does not work, need both copies when merging
-          //&& (i<current_cluster(j))
             if(k>P.size()) std::cout<<"ERROR 2\n";
-            // if(i==current_cluster(12799) && d > 35.02 && d < 35.03){
-            //   cout << 111 << endl;
-            // }
-            help[k+ help_start]=tuple<float, int>(d, Mapping2[k]);
+            help[k+ help_start]=tuple<T, int>(d, Mapping2[k]);
           }
         }
       }
@@ -260,7 +234,6 @@ class junk_array {
       parlay::sort_inplace(help_valid);
 
       for (int ii=0;ii<min(num_distances, (int)help_valid.size());++ii){
-        // float d = get<0>(help_valid[ii]);
         if(get<1>(help_valid[ii])!= -1) queues[i]->push_to_vec(help_valid[ii]);
       }
       if(queues[i]->size()> 0) make_heap(queues[i]->begin(),queues[i]->end());
@@ -275,21 +248,19 @@ class junk_array {
     }
 
     int peek_val(pq *v){
-      // return get<1>(v->top());
       return get<1>(v->v.front());
 
     }
-    float peek_key(pq *v){
-      // return get<0>(v->top());
+    T peek_key(pq *v){
       return -1 * get<0>(v->v.front());
     } 
 
     // Compute the mimial distance of a pair of clusters and return the clusters in i and j
     // Todo so, we iterate over all junks. If the junk is used (i.e. has at least one distance stored),
     // we update the smallest distance found so far
-    float get_minimal_distance(pointset &P, int& i, int& j) {
+    T get_minimal_distance(pointset &P, int& i, int& j) {
       // std::cout<<"look for miminal distance\n";
-      float d=MAX_float;
+      T d=MAX_T;
       for(auto itr = active_clusters.begin(); itr != active_clusters.end(); itr++){
         int k = *itr;
         pq *v = queues[k];
@@ -303,7 +274,6 @@ class junk_array {
           d = peek_key(v);
           i = k;
           j = peek_val(v);
-          // pop(v);
         }
       }
       pop(queues[i]);
@@ -315,9 +285,6 @@ class junk_array {
       // if only one of them in the queue, remove
       //if both in the queue, remove one, and update the val of the other to be newid
       pq *v = queues[i];
-      // if(newid == 1154 && i == 116){
-      //   cout << "debug" << endl;
-      // }
       vector<entry>::iterator first_itr = v->end();
       for(auto it = v->begin(); it != v->end(); ++it) {
         
@@ -345,31 +312,21 @@ class junk_array {
     }
 
     void merge(int k, int j, int i) {
-      // if(k==32851){
-      //   cout << 1111 << endl;
-      // }
-      // int tt = Mapping2[current_cluster(12799)];
-      // if(tt==i || tt==j){
-      //   cout << 1111 << endl;
-      // }
       queues[k] = new pq();
       pq *vi = queues[i];
       pq *vj = queues[j];
 
       auto min1 = min_element(vi->v);
       auto min2 = min_element(vj->v);
-      float upper = -1 * max(get<0>(*min1), get<0>(*min2));
+      T upper = -1 * max(get<0>(*min1), get<0>(*min2));
 
       for(auto it = vi->begin(); it != vi->end(); ++it) {
         int key = get<1>(*it);
         if(key == -1 || Mapping[key]== -1) continue;
        for(auto it2 = vj->begin(); it2 != vj->end(); ++it2) {
         if(key == get<1>(*it2)){
-          float newd = -1 * min(get<0>(*it), get<0>(*it2));
-      // if((tt==i || tt==j) && newd > 35.02 && newd<35.03){
-      //   cout << 1111 << endl;
-      // }
-          if(newd < upper) queues[k]->push_to_vec(entry(newd, key)); //optimize: emplace to vector
+          T newd = -1 * min(get<0>(*it), get<0>(*it2));
+          if(newd < upper) queues[k]->push_to_vec(entry(newd, key)); 
           break;
         }
         }
@@ -388,10 +345,6 @@ class junk_array {
       active_clusters.insert(k);
 
       int* tmp_active = new int[active_clusters.size()];
-      // my_parallel_for(auto itr = active_clusters.begin(); itr != active_clusters.end(); itr++){
-      //   int r = *itr;
-      //   remove(i,j,r, k);
-      // }
       int tmp_i=0;
       for(auto itr = active_clusters.begin(); itr != active_clusters.end(); itr++){
         int r = *itr;
@@ -411,7 +364,6 @@ class junk_array {
 
 int main(int argc, char *argv[]) {
   FILE *pFile=fopen(argv[1],"rb");
-  // char* file = argv[1];
 	const int MAX_N=atol(argv[2]); 
 	int DIM=atoi(argv[3]);
   int num_dist = atoi(argv[4]);
@@ -422,32 +374,22 @@ int main(int argc, char *argv[]) {
   timer t; t.start();
   std::cout<<"Clustering "<<P.size()<<" points\n";
   cout << "using " <<num_dist << " cache" << endl;
-  float cost = 0;
+  T cost = 0;
 
   cout << "using " << parlay::num_workers() << " threads" << endl;
-  // fstream file_obj;
-  // file_obj.open("/home/ubuntu/greedy_clink/debug/19K.txt", ios::out); //"+ to_string(round) + "
-  // cout << P.point_dist(585, 788);
 
   junk_array JA = junk_array(P, num_dist);
 
   for(int i=P.size(); i<2*P.size()-1; i++) {
     int j,k;
-    // if(i == 14830+19020){
-    //   cout << "debug" << endl;
-    // }
-    float d=JA.get_minimal_distance(P,j,k);
-    // file_obj <<  j << " " << k << " " << std::setprecision(8) << d << endl;
+    T d=JA.get_minimal_distance(P,j,k);
     cost += d;
     if(j==k) { std::cout<<"ERROR i==j\n"; exit(1); }
     JA.merge(i,j,k);
-    // JA.checkqueue(12799);
   }
 
   cout << "cost: " << std::setprecision(8) << cost << endl;
   cout << "time: " << t.next() << endl;
-  // file_obj.close();
-  
 
   return 0;
 };
