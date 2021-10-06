@@ -102,16 +102,17 @@ UnionFind::ParUF<intT> *linkage(point<dim>* P, intT n, commandLine params, Union
   if(cache_size == 1) cache_size =0;
   cout << "cache_size/2 = " <<  cache_size << endl;
 
+  dendrogram::dendroLine* dendro;
   if(method ==  "complete"){
-      ChainTree::completeLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
+      dendro = ChainTree::completeLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else if(method ==  "ward"){
-      ChainTree::wardLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
+      dendro = ChainTree::wardLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else if(method ==  "avg"){
-      ChainTree::avgLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
+      dendro = ChainTree::avgLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else if(method ==  "avgsq"){
-      ChainTree::avgsqLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
+      dendro = ChainTree::avgsqLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else if(method ==  "dummy"){
-      ChainTree::dummyCubicLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
+      dendro = ChainTree::dummyCubicLinkage<dim, pointT>(P, n, uf, eps, naive_thresh, cache_size);
   }else{
       cout << "invalid method" << endl;
       exit(1);
@@ -120,6 +121,18 @@ UnionFind::ParUF<intT> *linkage(point<dim>* P, intT n, commandLine params, Union
   cout << std::fixed;
   cout << std::setprecision(10);
   UTIL::PrintFunctionItem("CLINK", "COST", uf->cost() );
+
+  string output_dendro = params.getOptionValue("-dendro", "");
+  cout << "output dendrogram to: " << output_dendro << endl;
+  if(output_dendro != ""){
+      ofstream file_obj;
+      file_obj.open(output_dendro); 
+      for(intT i=0;i<n-1;++i){
+          dendro[i].print(file_obj);
+      }
+      file_obj.close();
+  }
+  free(dendro);
 
   return uf;
 }

@@ -67,7 +67,7 @@ struct dendroLine{
     intT size;
     dendroLine(intT _id1, intT _id2, double _height, intT _size):id1(_id1), id2(_id2), height(_height), size(_size){}
 
-    void print(ofstream file_obj){
+    void print(ofstream &file_obj){
         file_obj << id1 << " " << id2 << " " << std::setprecision(20) << height << " " << size << endl; 
     }
 

@@ -762,7 +762,7 @@ inline void chain_linkage(TF *finder, timer t1){
 
 
 template<int dim, class pointT>
-inline void completeLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+inline dendrogram::dendroLine* completeLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
   timer t1;
   t1.start();
   cout << "complete Linkage of " << n << ", dim " << dim << " points" << endl; 
@@ -781,13 +781,14 @@ inline void completeLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, d
   timer t2;t2.start();
   dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
   UTIL::PrintSubtimer("format-dendro", t2.next());
-  free(dendro);
+  // free(dendro);
   delete finder;
   UTIL::PrintSubtimer("CLINK", t1.next());
+  return dendro;
 }
 
 template<int dim, class pointT>
-inline void wardLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+inline dendrogram::dendroLine* wardLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
   timer t1;
   t1.start();
   cout << "ward Linkage of " << n << ", dim " << dim << " points" << endl;
@@ -807,13 +808,14 @@ inline void wardLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, doubl
   timer t2;t2.start();
   dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
   UTIL::PrintSubtimer("format-dendro", t2.next());
-  free(dendro);
+  // free(dendro);
   delete finder;
   UTIL::PrintSubtimer("CLINK", t1.next());
+  return dendro;
 }
 
 template<int dim, class pointT>
-inline void avgLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+inline dendrogram::dendroLine* avgLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
   timer t1;
   t1.start();
   cout << "average Linkage of " << n << ", dim " << dim << " points" << endl; 
@@ -832,13 +834,14 @@ inline void avgLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double
   timer t2;t2.start();
   dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
   UTIL::PrintSubtimer("format-dendro", t2.next());
-  free(dendro);
+  // free(dendro);
   delete finder;
   UTIL::PrintSubtimer("CLINK", t1.next());
+  return dendro;
 }
 
 template<int dim, class pointT>
-inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+inline dendrogram::dendroLine* avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
   timer t1;
   t1.start();
   cout << "average Linkage of " << n << ", dim " << dim << " points, sqeuclidean" << endl; 
@@ -857,13 +860,14 @@ inline void avgsqLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, doub
   timer t2;t2.start();
   dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
   UTIL::PrintSubtimer("format-dendro", t2.next());
-  free(dendro);
+  // free(dendro);
   delete finder;
   UTIL::PrintSubtimer("CLINK", t1.next());
+  return dendro;
 }
 
 template<int dim, class pointT>
-inline void dummyCubicLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
+inline dendrogram::dendroLine* dummyCubicLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf, double eps, intT naive_thresh, intT cache_size){
   timer t1;
   t1.start();
   cout << "dummy Cubic Linkage of " << n << ", dim " << dim << " points" << endl; 
@@ -882,9 +886,10 @@ inline void dummyCubicLinkage(point<dim>* P, intT n, UnionFind::ParUF<intT> *uf,
   timer t2;t2.start();
   dendrogram::dendroLine* dendro = dendrogram::formatDendrogram<nodeT>(finder->nodes, n, eps);
   UTIL::PrintSubtimer("format-dendro", t2.next());
-  free(dendro);
+  // free(dendro);
   delete finder;
   UTIL::PrintSubtimer("CLINK", t1.next());
+  return dendro;
 }
 
 }//end of namespace
