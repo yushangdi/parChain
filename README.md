@@ -44,8 +44,7 @@ Python libraries:
 * numpy
 
 ## Data
-s
-You can download our datasets [here](https://console.cloud.google.com/storage/browser/...)
+You can download our datasets [here](https://console.cloud.google.com/storage/browser/hac_datasets/hac_datasets)
 
 
 ## Running Tests
